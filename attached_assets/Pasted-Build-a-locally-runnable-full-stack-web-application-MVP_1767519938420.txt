@@ -1,0 +1,220 @@
+Build a locally runnable full-stack web application MVP for PLANPAL – Reducing Friction in Group Financial Settlements, integrating Telegram-based consensus expense logging and payment recording/confirmation.
+
+🔧 TECH STACK
+
+Frontend: React + Vite
+
+Styling: Tailwind CSS
+
+Backend: Node.js + Express
+
+Database & Auth: Firebase
+
+Email/Password Authentication
+
+Firestore Database
+
+Telegram Bot: node-telegram-bot-api
+
+App must run locally with:
+
+npm install
+npm run dev
+
+1️⃣ LANDING PAGE
+
+Explain problem: group expenses cause confusion & arguments
+
+Explain PLANPAL: Telegram-powered bot for consensus-based logging
+
+Highlight uniqueness:
+
+Expenses recorded only after agreement
+
+Neutral bot mediator
+
+Works inside existing Telegram groups
+
+“Get Started” button → /auth
+
+2️⃣ AUTHENTICATION
+
+Firebase Email/Password login & registration
+
+Redirect logged-in user to /dashboard
+
+Store user profile:
+
+userId
+email
+telegramPhoneNumber
+
+3️⃣ DASHBOARD
+
+Show events created by logged-in user
+
+Event card shows: Name, Event Code, Status
+
+Button: Create New Event
+
+4️⃣ EVENT CREATION
+
+Form: Event Name, Date, Location, Description
+
+Generate short EVENT_CODE
+
+Store in Firestore:
+
+eventId
+eventCode
+creatorUserId
+creatorTelegramNumber
+status: CREATED
+telegramGroupId: null
+
+
+Show Event details + EVENT CODE
+
+Button: Connect with Telegram Bot → deep-link:
+
+https://t.me/<BOT_USERNAME>?start=<EVENT_CODE>
+
+5️⃣ TELEGRAM BOT
+/start <EVENT_CODE> (Private)
+
+Validate EVENT_CODE
+
+Store mapping: eventCode ↔ telegramUserId
+
+Reply:
+
+✅ Event "<Event Name>" recognized.
+Please add me to your Telegram group.
+
+Bot Added to Group
+
+Detect when bot is added
+
+Do nothing until /start_event command
+
+/start_event <EVENT_CODE> (Group)
+
+Verify EVENT_CODE + sender is creator
+
+Link group:
+
+telegramGroupId
+status: ACTIVE
+
+
+Announce:
+
+✅ Event "<Event Name>" is now active.
+Expense logging will follow group consensus.
+
+6️⃣ CONSENSUS-BASED EXPENSE LOGGING
+/add_expense <amount> <description> [@mentions]
+
+Split rules:
+
+No mentions → split among all group members
+
+Mentions → split among only tagged users
+
+Only users in splitAmong can vote
+
+Votes from others are ignored
+
+Expense Firestore Structure
+Expense {
+  expenseId
+  eventId
+  amount
+  description
+  proposedBy
+  splitAmong: [telegramUserId]
+  agrees: [telegramUserId]
+  disagrees: [telegramUserId]
+  status: PENDING | CONFIRMED | REJECTED
+}
+
+Bot Flow
+
+Parse command → determine splitAmong
+
+Post message with inline buttons: 👍 Agree / 👎 Disagree
+
+Consensus rules:
+
+Majority agree → CONFIRMED
+
+Any disagreement → REJECTED
+
+Bot Responses
+
+✅ CONFIRMED:
+
+Expense Confirmed – ₹1200
+Split ₹400 each among @A @B @C
+
+
+❌ REJECTED:
+
+Expense Rejected – One or more participants disagreed
+
+7️⃣ PAYMENT RECORDING / MUTUAL CONFIRMATION (NEW FEATURE)
+/paid @User <amount> (Sender)
+
+Marks a payment claim to a specific user
+
+Bot posts in group:
+
+⏳ Payment claimed: A → B ₹500
+Waiting for confirmation from B
+
+/confirm_payment @User <amount> (Receiver)
+
+Confirms the payment
+
+Bot updates Firestore:
+
+Payment {
+  paymentId
+  eventId
+  fromUser
+  toUser
+  amount
+  status: PENDING | CONFIRMED
+  initiatedAt
+}
+
+
+Bot announces:
+
+✅ Payment confirmed: A → B ₹500
+
+Behavior
+
+Only confirmed payments affect settlement
+
+Unconfirmed payments do not count
+
+Supports creator-only interim summary
+
+8️⃣ EXCLUSIONS (MVP SCOPE)
+
+No reminders
+
+No automatic event closure
+
+No payment processing
+
+No settlement calculation (beyond recording confirmation)
+
+9️⃣ DELIVERABLES
+
+Fully functional demo (locally runnable)
+
+.env.example for Firebase & Telegram tokens
+
+README: Setup, run instructions, Telegram commands
