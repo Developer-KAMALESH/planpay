@@ -27,17 +27,23 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   getEvent(id: number): Promise<Event | undefined>;
   getEventByCode(code: string): Promise<Event | undefined>;
+  getEventByTelegramGroupId(groupId: string): Promise<Event | undefined>;
   getEventsForUser(userId: number): Promise<Event[]>; // Created by user
   updateEventTelegramGroup(eventId: number, groupId: string): Promise<void>;
   updateEventStatus(eventId: number, status: string): Promise<void>;
 
   // Expenses
   createExpense(expense: InsertExpense): Promise<Expense>;
+  getExpense(id: number): Promise<Expense | undefined>;
   getExpensesForEvent(eventId: number): Promise<Expense[]>;
+  updateExpenseVotes(expenseId: number, votes: Record<string, 'agree' | 'disagree'>): Promise<void>;
+  updateExpenseStatus(expenseId: number, status: string): Promise<void>;
 
   // Payments
   createPayment(payment: InsertPayment): Promise<Payment>;
+  getPayment(id: number): Promise<Payment | undefined>;
   getPaymentsForEvent(eventId: number): Promise<Payment[]>;
+  updatePaymentStatus(paymentId: number, status: string): Promise<void>;
   
   sessionStore: session.Store;
 }
@@ -95,6 +101,11 @@ export class DatabaseStorage implements IStorage {
     return event;
   }
 
+  async getEventByTelegramGroupId(groupId: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.telegramGroupId, groupId));
+    return event;
+  }
+
   async getEventsForUser(userId: number): Promise<Event[]> {
     return db.select().from(events).where(eq(events.creatorId, userId));
   }
@@ -117,8 +128,25 @@ export class DatabaseStorage implements IStorage {
     return newExpense;
   }
 
+  async getExpense(id: number): Promise<Expense | undefined> {
+    const [expense] = await db.select().from(expenses).where(eq(expenses.id, id));
+    return expense;
+  }
+
   async getExpensesForEvent(eventId: number): Promise<Expense[]> {
     return db.select().from(expenses).where(eq(expenses.eventId, eventId));
+  }
+
+  async updateExpenseVotes(expenseId: number, votes: Record<string, 'agree' | 'disagree'>): Promise<void> {
+    await db.update(expenses)
+      .set({ votes })
+      .where(eq(expenses.id, expenseId));
+  }
+
+  async updateExpenseStatus(expenseId: number, status: string): Promise<void> {
+    await db.update(expenses)
+      .set({ status })
+      .where(eq(expenses.id, expenseId));
   }
 
   // Payment
@@ -127,8 +155,19 @@ export class DatabaseStorage implements IStorage {
     return newPayment;
   }
 
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
   async getPaymentsForEvent(eventId: number): Promise<Payment[]> {
     return db.select().from(payments).where(eq(payments.eventId, eventId));
+  }
+
+  async updatePaymentStatus(paymentId: number, status: string): Promise<void> {
+    await db.update(payments)
+      .set({ status })
+      .where(eq(payments.id, paymentId));
   }
 }
 
