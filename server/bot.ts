@@ -168,7 +168,9 @@ export function setupTelegramBot() {
     const payment = await storage.createPayment({
       eventId: event.id,
       fromUserId: 0, 
+      fromUsername: fromUsername,
       toUserId: 0, 
+      toUsername: toUsername,
       amount,
       status: 'PENDING'
     });
@@ -225,11 +227,31 @@ export function setupTelegramBot() {
       // Payer gets the full amount added to their balance
       balances[payer] += amount;
 
-      // Everyone in splitAmong (including payer if they are in the list) owes their share
+      // Everyone in splitAmong owes their share
       splitAmong.forEach(user => {
         balances[user] -= perPerson;
       });
     });
+    
+    // Process confirmed payments to update balances
+    const payments = await storage.getPaymentsForEvent(event.id);
+    const confirmedPayments = payments.filter(p => p.status === 'CONFIRMED');
+    
+    confirmedPayments.forEach(pay => {
+      const from = pay.fromUsername;
+      const to = pay.toUsername;
+      const amount = pay.amount;
+
+      if (!from || !to) return;
+
+      if (!(from in balances)) balances[from] = 0;
+      if (!(to in balances)) balances[to] = 0;
+
+      // From pays to To -> From's balance increases (less debt/more credit), To's balance decreases (less credit/more debt)
+      balances[from] += amount;
+      balances[to] -= amount;
+    });
+
 
     // Format output
     let summaryText = `📊 *Event Summary: ${event.name}*\n`;
@@ -242,9 +264,10 @@ export function setupTelegramBot() {
       summaryText += "*Net Balances (who owes what):*\n";
       users.forEach(user => {
         const bal = balances[user] / 100;
-        if (bal > 0.01) {
+        // Using a small epsilon for floating point comparison
+        if (bal > 0.005) {
           summaryText += `@${user}: *Owed ₹${bal.toFixed(2)}*\n`;
-        } else if (bal < -0.01) {
+        } else if (bal < -0.005) {
           summaryText += `@${user}: *Owes ₹${Math.abs(bal).toFixed(2)}*\n`;
         } else {
           summaryText += `@${user}: Settled\n`;

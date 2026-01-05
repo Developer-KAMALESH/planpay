@@ -44,7 +44,9 @@ export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id").notNull(),
   fromUserId: integer("from_user_id").notNull(),
+  fromUsername: text("from_username"),
   toUserId: integer("to_user_id").notNull(),
+  toUsername: text("to_username"),
   amount: integer("amount").notNull(),
   status: text("status").default("PENDING"), // PENDING, CONFIRMED
   createdAt: timestamp("created_at").defaultNow(),
