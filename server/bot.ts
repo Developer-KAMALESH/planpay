@@ -205,23 +205,54 @@ export function setupTelegramBot() {
     const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
     
     // Settlement Calculation
-    const balances: Record<string, number> = {}; // username -> net balance
+    const balances: Record<string, number> = {}; // username -> net balance (positive means they are owed, negative means they owe)
 
     confirmedExpenses.forEach(exp => {
       const amount = exp.amount;
       const splitAmong = exp.splitAmong || [];
+      const payer = exp.payerUsername;
+      
+      if (!payer || splitAmong.length === 0) return;
+
       const perPerson = amount / splitAmong.length;
 
-      // Payer gets back (amount - share)
-      // For now we don't have payer's telegram handle easily in expense object if logged via bot
-      // This part needs a bit of bot context (msg.from) or storage mapping
-      // Let's assume the one who added it is the payer for simplicity in MVP if not tracked
-      // Actually payerId is in schema.
+      // Initialize balances
+      if (!(payer in balances)) balances[payer] = 0;
+      splitAmong.forEach(u => {
+        if (!(u in balances)) balances[u] = 0;
+      });
+
+      // Payer gets the full amount added to their balance
+      balances[payer] += amount;
+
+      // Everyone in splitAmong (including payer if they are in the list) owes their share
+      splitAmong.forEach(user => {
+        balances[user] -= perPerson;
+      });
     });
 
-    // Simplified Summary for now as requested
-    const total = confirmedExpenses.reduce((sum, e) => sum + e.amount, 0);
-    bot?.sendMessage(chatId, `📊 Event Summary: ${event.name}\nTotal Confirmed: ₹${total}\n\nNet Settlements:\n(Calculation logic based on participants)`);
+    // Format output
+    let summaryText = `📊 *Event Summary: ${event.name}*\n`;
+    summaryText += `Total Confirmed: ₹${(confirmedExpenses.reduce((s, e) => s + e.amount, 0) / 100).toFixed(2)}\n\n`;
+    
+    const users = Object.keys(balances);
+    if (users.length === 0) {
+      summaryText += "No expenses recorded yet.";
+    } else {
+      summaryText += "*Net Balances:*\n";
+      users.forEach(user => {
+        const bal = balances[user] / 100;
+        if (bal > 0.01) {
+          summaryText += `@${user}: Owed ₹${bal.toFixed(2)}\n`;
+        } else if (bal < -0.01) {
+          summaryText += `@${user}: Owes ₹${Math.abs(bal).toFixed(2)}\n`;
+        } else {
+          summaryText += `@${user}: Settled\n`;
+        }
+      });
+    }
+
+    bot?.sendMessage(chatId, summaryText, { parse_mode: 'Markdown' });
   });
 
   bot.onText(/\/close_event/, async (msg) => {
