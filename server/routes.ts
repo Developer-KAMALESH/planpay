@@ -70,7 +70,12 @@ export async function registerRoutes(
     try {
         const input = api.expenses.create.input.parse(req.body);
         const eventId = Number(req.params.eventId);
-        const expense = await storage.createExpense({ ...input, eventId, payerId: req.user.id });
+        const expense = await storage.createExpense({ 
+            ...input, 
+            eventId, 
+            payerId: req.user.id,
+            payerUsername: req.user.username 
+        });
         res.status(201).json(expense);
     } catch (err) {
         res.status(400).json({ message: "Invalid Input" });

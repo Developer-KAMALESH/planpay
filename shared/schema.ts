@@ -31,6 +31,7 @@ export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id").notNull(),
   payerId: integer("payer_id").notNull(), // Who paid
+  payerUsername: text("payer_username"), // Cache for bot/unlinked users
   description: text("description").notNull(),
   amount: integer("amount").notNull(), // Stored in cents/lowest unit
   splitAmong: jsonb("split_among").$type<string[]>(), // Array of telegram IDs or User IDs

@@ -81,7 +81,8 @@ export function setupTelegramBot() {
       description,
       amount,
       splitAmong,
-      votes: {}
+      votes: {},
+      payerUsername: fromUsername || 'Unknown'
     });
 
     const opts = {

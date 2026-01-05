@@ -229,7 +229,7 @@ export default function EventDetails() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>
-                                                        Amount ($)
+                                                        Amount (₹)
                                                     </FormLabel>
                                                     <FormControl>
                                                         <Input
@@ -271,7 +271,7 @@ export default function EventDetails() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold flex items-baseline gap-1">
-                                <DollarSign className="w-5 h-5 text-muted-foreground self-center" />
+                                <span className="text-muted-foreground text-xl">₹</span>
                                 {(totalExpenses / 100).toFixed(2)}
                             </div>
                         </CardContent>
@@ -351,8 +351,7 @@ export default function EventDetails() {
                                                         {expense.description}
                                                     </TableCell>
                                                     <TableCell>
-                                                        {/* In a real app we'd map ID to name */}
-                                                        User #{expense.payerId}
+                                                        {expense.payerUsername || `User #${expense.payerId}`}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground text-sm">
                                                         {format(
@@ -364,7 +363,7 @@ export default function EventDetails() {
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-right font-medium">
-                                                        $
+                                                        ₹
                                                         {(
                                                             expense.amount / 100
                                                         ).toFixed(2)}
@@ -429,7 +428,7 @@ export default function EventDetails() {
                                                     User #{payment.toUserId}
                                                 </span>
                                                 <span className="font-medium text-green-600">
-                                                    $
+                                                    ₹
                                                     {(
                                                         payment.amount / 100
                                                     ).toFixed(2)}
