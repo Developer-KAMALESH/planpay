@@ -72,12 +72,12 @@ export function setupTelegramBot() {
     }
 
     const mentions = getMentions(msg);
-    // If no mentions, split among all (logic to be refined later)
+    // If no mentions, split among all? For now let's just use the mentions or the creator if no mentions
     const splitAmong = mentions.length > 0 ? mentions : [fromUsername || fromId];
 
     const expense = await storage.createExpense({
       eventId: event.id,
-      payerId: 0, // Placeholder as we don't have mapping yet
+      payerId: 0, // Placeholder
       description,
       amount,
       splitAmong,
@@ -95,16 +95,15 @@ export function setupTelegramBot() {
       }
     };
 
-    bot?.sendMessage(chatId, `⏳ Expense Proposed: ${description} - ₹${amount}\nSplit among: ${splitAmong.map(u => '@' + u).join(', ')}`, opts);
+    bot?.sendMessage(chatId, `⏳ Expense Proposed: ${description} - ₹${amount}\nSplit among: ${splitAmong.map(u => '@' + u).join(', ')}\nWaiting for approval from all tagged participants.`, opts);
   });
 
   bot.on('callback_query', async (callbackQuery) => {
     const action = callbackQuery.data;
     const msg = callbackQuery.message;
-    const fromId = callbackQuery.from.id.toString();
     const fromUsername = callbackQuery.from.username;
 
-    if (!action || !msg || !fromId) return;
+    if (!action || !msg || !fromUsername) return;
 
     if (action.startsWith('vote_')) {
       const parts = action.split('_');
@@ -114,25 +113,42 @@ export function setupTelegramBot() {
       const expense = await storage.getExpense(expenseId);
       if (!expense || expense.status !== 'PENDING') return;
 
-      const votes = expense.votes || {};
-      votes[fromUsername || fromId] = vote;
-      await storage.updateExpenseVotes(expenseId, votes);
-
       const splitAmong = expense.splitAmong || [];
-      const voteCount = Object.keys(votes).length;
+      
+      // Check if the voting user is part of the split
+      if (!splitAmong.includes(fromUsername)) {
+        bot?.answerCallbackQuery(callbackQuery.id, { text: "You are not part of this expense split." });
+        return;
+      }
+
+      const votes = expense.votes || {};
+      votes[fromUsername] = vote;
+      await storage.updateExpenseVotes(expenseId, votes);
 
       if (vote === 'disagree') {
         await storage.updateExpenseStatus(expenseId, 'REJECTED');
-        bot?.editMessageText(`❌ REJECTED: Expense "${expense.description}" - ₹${expense.amount} was rejected.`, {
+        bot?.editMessageText(`❌ REJECTED: Expense "${expense.description}" - ₹${expense.amount} was rejected by @${fromUsername}.`, {
           chat_id: msg.chat.id,
           message_id: msg.message_id
         });
-      } else if (voteCount >= splitAmong.length) {
-        await storage.updateExpenseStatus(expenseId, 'CONFIRMED');
-        bot?.editMessageText(`✅ CONFIRMED: Expense "${expense.description}" - ₹${expense.amount} confirmed by all.`, {
-          chat_id: msg.chat.id,
-          message_id: msg.message_id
-        });
+      } else {
+        const agreedUsers = Object.keys(votes).filter(u => votes[u] === 'agree');
+        if (agreedUsers.length >= splitAmong.length) {
+          await storage.updateExpenseStatus(expenseId, 'CONFIRMED');
+          bot?.editMessageText(`✅ CONFIRMED: Expense "${expense.description}" - ₹${expense.amount} confirmed by all participants.`, {
+            chat_id: msg.chat.id,
+            message_id: msg.message_id
+          });
+        } else {
+          bot?.answerCallbackQuery(callbackQuery.id, { text: "Vote recorded! Waiting for others." });
+          // Update message to show current progress
+          const remaining = splitAmong.filter(u => !votes[u]);
+          bot?.editMessageText(`⏳ Expense Proposed: ${expense.description} - ₹${expense.amount}\nSplit among: ${splitAmong.map(u => '@' + u).join(', ')}\nWaiting for: ${remaining.map(u => '@' + u).join(', ')}`, {
+            chat_id: msg.chat.id,
+            message_id: msg.message_id,
+            reply_markup: msg.reply_markup as TelegramBot.InlineKeyboardMarkup
+          });
+        }
       }
     }
   });
@@ -150,8 +166,8 @@ export function setupTelegramBot() {
 
     const payment = await storage.createPayment({
       eventId: event.id,
-      fromUserId: 0, // Placeholder
-      toUserId: 0, // Placeholder
+      fromUserId: 0, 
+      toUserId: 0, 
       amount,
       status: 'PENDING'
     });
@@ -170,7 +186,6 @@ export function setupTelegramBot() {
     const event = await storage.getEventByTelegramGroupId(chatId.toString());
     if (!event) return;
 
-    // Logic to find pending payment and confirm it
     const payments = await storage.getPaymentsForEvent(event.id);
     const pending = payments.find(p => p.amount === amount && p.status === 'PENDING');
 
@@ -189,7 +204,7 @@ export function setupTelegramBot() {
     const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
     const total = confirmedExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-    bot?.sendMessage(chatId, `📊 Event Summary: ${event.name}\nTotal Confirmed Expenses: ₹${total}`);
+    bot?.sendMessage(chatId, `📊 Event Summary: ${event.name}\nTotal Confirmed Expenses: ₹${total}\n\nUse /close_event to finalize once all payments are settled.`);
   });
 
   bot.onText(/\/close_event/, async (msg) => {
@@ -201,10 +216,35 @@ export function setupTelegramBot() {
     const pending = expenses.some(e => e.status === 'PENDING');
 
     if (pending) {
-      bot?.sendMessage(chatId, "⚠️ Cannot close event: There are pending expenses.");
+      bot?.sendMessage(chatId, "⚠️ Cannot close event: There are pending expenses waiting for approval.");
     } else {
       await storage.updateEventStatus(event.id, 'CLOSED');
       bot?.sendMessage(chatId, `🏁 Event "${event.name}" is now closed.`);
     }
+  });
+
+  bot.onText(/\/help/, (msg) => {
+    const helpMessage = `
+🤖 *PLANPAL Bot Commands*
+
+*General Commands:*
+/start <event_code> - Initialize the bot with your event (Private Chat)
+/start_event <event_code> - Link this group to your event
+
+*Expense Tracking:*
+/add_expense <amount> <description> @mentions - Log an expense. If participants are mentioned, it waits for everyone's approval.
+/summary - View total confirmed expenses for the event.
+
+*Payments:*
+/paid @username <amount> - Record that you paid someone.
+/confirm_payment @username <amount> - Confirm you received a payment.
+
+*Event Management:*
+/close_event - Close the event (all expenses must be confirmed/rejected).
+/help - Show this help message.
+
+*Note:* All amounts are in ₹ (INR).
+    `;
+    bot?.sendMessage(msg.chat.id, helpMessage, { parse_mode: 'Markdown' });
   });
 }
