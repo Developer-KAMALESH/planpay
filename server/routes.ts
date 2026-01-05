@@ -55,7 +55,13 @@ export async function registerRoutes(
     const expenses = await storage.getExpensesForEvent(event.id);
     const payments = await storage.getPaymentsForEvent(event.id);
 
-    res.json({ ...event, expenses, payments });
+    // Attach user info to expenses
+    const expensesWithUsers = await Promise.all(expenses.map(async (e) => {
+      const user = await storage.getUser(e.payerId);
+      return { ...e, payerUsername: user?.username || 'Unknown' };
+    }));
+
+    res.json({ ...event, expenses: expensesWithUsers, payments });
   });
 
   // Expenses

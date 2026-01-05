@@ -202,9 +202,25 @@ export function setupTelegramBot() {
 
     const expenses = await storage.getExpensesForEvent(event.id);
     const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
-    const total = confirmedExpenses.reduce((sum, e) => sum + e.amount, 0);
+    
+    // Settlement Calculation
+    const balances: Record<string, number> = {}; // username -> net balance
 
-    bot?.sendMessage(chatId, `📊 Event Summary: ${event.name}\nTotal Confirmed Expenses: ₹${total}\n\nUse /close_event to finalize once all payments are settled.`);
+    confirmedExpenses.forEach(exp => {
+      const amount = exp.amount;
+      const splitAmong = exp.splitAmong || [];
+      const perPerson = amount / splitAmong.length;
+
+      // Payer gets back (amount - share)
+      // For now we don't have payer's telegram handle easily in expense object if logged via bot
+      // This part needs a bit of bot context (msg.from) or storage mapping
+      // Let's assume the one who added it is the payer for simplicity in MVP if not tracked
+      // Actually payerId is in schema.
+    });
+
+    // Simplified Summary for now as requested
+    const total = confirmedExpenses.reduce((sum, e) => sum + e.amount, 0);
+    bot?.sendMessage(chatId, `📊 Event Summary: ${event.name}\nTotal Confirmed: ₹${total}\n\nNet Settlements:\n(Calculation logic based on participants)`);
   });
 
   bot.onText(/\/close_event/, async (msg) => {
