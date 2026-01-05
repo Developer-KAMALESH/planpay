@@ -72,8 +72,24 @@ export function setupTelegramBot() {
     }
 
     const mentions = getMentions(msg);
-    // If no mentions, split among all? For now let's just use the mentions or the creator if no mentions
-    const splitAmong = mentions.length > 0 ? mentions : [fromUsername || fromId];
+    // Remove duplicates
+    let splitAmong = Array.from(new Set(mentions));
+    
+    // If no mentions, split among all? For now, we require at least one mention or default to payer
+    if (splitAmong.length === 0) {
+      splitAmong = [fromUsername || fromId];
+    }
+
+    // Payer must be in the splitAmong list
+    if (fromUsername && !splitAmong.includes(fromUsername)) {
+      bot?.sendMessage(chatId, `❌ Rejected: @${fromUsername} (payer) must be part of the split participants.`);
+      return;
+    }
+
+    if (splitAmong.length < 2) {
+      bot?.sendMessage(chatId, "❌ Rejected: No splitting needed for a single participant.");
+      return;
+    }
 
     const expense = await storage.createExpense({
       eventId: event.id,
@@ -206,75 +222,74 @@ export function setupTelegramBot() {
     const expenses = await storage.getExpensesForEvent(event.id);
     const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
     
-    // Settlement Calculation
-    const balances: Record<string, number> = {}; // username -> net balance (positive means they are owed, negative means they owe)
+    // Step 1: Initialize net balances
+    const netBalances: Record<string, number> = {};
 
+    // Step 2: Process each confirmed expense
     confirmedExpenses.forEach(exp => {
       const amount = exp.amount;
-      const splitAmong = exp.splitAmong || [];
+      const splitAmong = Array.from(new Set(exp.splitAmong || [])); // Remove duplicates
       const payer = exp.payerUsername;
       
       if (!payer || splitAmong.length === 0) return;
+      if (!splitAmong.includes(payer)) return; // Payer must be a participant
 
-      const perPerson = amount / splitAmong.length;
+      const share = amount / splitAmong.length;
 
-      // Initialize balances
-      if (!(payer in balances)) balances[payer] = 0;
+      // Initialize users in netBalances
+      if (!(payer in netBalances)) netBalances[payer] = 0;
       splitAmong.forEach(u => {
-        if (!(u in balances)) balances[u] = 0;
+        if (!(u in netBalances)) netBalances[u] = 0;
       });
 
-      // Payer gets the full amount added to their balance
-      balances[payer] += amount;
+      // Payer's net balance increases by (share * (count - 1))
+      netBalances[payer] += share * (splitAmong.length - 1);
 
-      // Everyone in splitAmong owes their share
+      // Other participants' net balance decreases by share
       splitAmong.forEach(user => {
-        balances[user] -= perPerson;
-      });
-    });
-    
-    // Process confirmed payments to update balances
-    const payments = await storage.getPaymentsForEvent(event.id);
-    const confirmedPayments = payments.filter(p => p.status === 'CONFIRMED');
-    
-    confirmedPayments.forEach(pay => {
-      const from = pay.fromUsername;
-      const to = pay.toUsername;
-      const amount = pay.amount;
-
-      if (!from || !to) return;
-
-      if (!(from in balances)) balances[from] = 0;
-      if (!(to in balances)) balances[to] = 0;
-
-      // From pays to To -> From's balance increases (less debt/more credit), To's balance decreases (less credit/more debt)
-      balances[from] += amount;
-      balances[to] -= amount;
-    });
-
-
-    // Format output
-    let summaryText = `📊 *Event Summary: ${event.name}*\n`;
-    summaryText += `Total Confirmed: ₹${(confirmedExpenses.reduce((s, e) => s + e.amount, 0) / 100).toFixed(2)}\n\n`;
-    
-    const users = Object.keys(balances);
-    if (users.length === 0) {
-      summaryText += "No confirmed expenses recorded yet.";
-    } else {
-      summaryText += "*Net Balances (who owes what):*\n";
-      users.forEach(user => {
-        const bal = balances[user] / 100;
-        // Using a small epsilon for floating point comparison
-        if (bal > 0.005) {
-          summaryText += `@${user}: *Owed ₹${bal.toFixed(2)}*\n`;
-        } else if (bal < -0.005) {
-          summaryText += `@${user}: *Owes ₹${Math.abs(bal).toFixed(2)}*\n`;
-        } else {
-          summaryText += `@${user}: Settled\n`;
+        if (user !== payer) {
+          netBalances[user] -= share;
         }
       });
-      
-      summaryText += "\n_Positive balance means you are owed money, negative means you owe others._";
+    });
+
+    // Step 3: Convert net balances to pairwise debts
+    const debtors: { user: string, balance: number }[] = [];
+    const creditors: { user: string, balance: number }[] = [];
+
+    Object.entries(netBalances).forEach(([user, balance]) => {
+      if (balance < -0.01) {
+        debtors.push({ user, balance: Math.abs(balance) });
+      } else if (balance > 0.01) {
+        creditors.push({ user, balance });
+      }
+    });
+
+    const settlements: string[] = [];
+    let dIdx = 0;
+    let cIdx = 0;
+
+    while (dIdx < debtors.length && cIdx < creditors.length) {
+      const debtor = debtors[dIdx];
+      const creditor = creditors[cIdx];
+      const settlementAmount = Math.min(debtor.balance, creditor.balance);
+
+      settlements.push(`@${debtor.user} owes @${creditor.user} ₹${(settlementAmount / 100).toFixed(2)}`);
+
+      debtor.balance -= settlementAmount;
+      creditor.balance -= settlementAmount;
+
+      if (debtor.balance < 0.01) dIdx++;
+      if (creditor.balance < 0.01) cIdx++;
+    }
+
+    // Format output
+    let summaryText = `📊 *Expense Summary: ${event.name}*\n\n`;
+    
+    if (settlements.length === 0) {
+      summaryText += "Everything is settled! ✅";
+    } else {
+      summaryText += settlements.join('\n');
     }
 
     bot?.sendMessage(chatId, summaryText, { parse_mode: 'Markdown' });

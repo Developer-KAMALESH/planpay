@@ -1,0 +1,151 @@
+Algorithm for /addexpense <amount> <description> @mentions
+Step 1: Identify participants
+payer = commandSender
+
+if mentions exist:
+    participants = mentioned users
+else:
+    participants = all group members
+
+Step 2: Calculate equal split
+share = amount / numberOfParticipants
+
+Step 3: Create debts
+
+For each participant:
+
+if participant != payer:
+    participant owes payer → share
+
+
+⚠️ Payer does NOT owe himself
+
+Step 4: Store expense (after consensus)
+
+Only after expense is CONFIRMED:
+
+for each participant in splitAmong:
+    if participant != payer:
+        balance[participant][payer] += share
+
+3️⃣ Algorithm for Computing “Who Owes Whom”
+
+This runs when:
+
+/summary
+
+Dashboard view
+
+Before /closeevent
+
+Step 1: Initialize net balance
+netBalance[user] = 0
+
+Step 2: Process each confirmed expense
+
+For every expense:
+
+share = expense.amount / expense.splitAmong.length
+
+for each user in splitAmong:
+    if user == expense.paidBy:
+        netBalance[user] += share * (splitAmong.length - 1)
+    else:
+        netBalance[user] -= share
+
+Step 3: Convert net balances to pairwise debts
+
+Split users into:
+
+debtors  = users with netBalance < 0
+creditors = users with netBalance > 0
+
+
+Then:
+
+for each debtor:
+    for each creditor:
+        settlement = min(abs(debtor.balance), creditor.balance)
+        debtor owes creditor settlement
+
+
+This gives clean output like:
+
+A owes B ₹500
+C owes B ₹300
+
+4️⃣ Example Walkthrough (VERY IMPORTANT)
+Group Members
+A, B, C
+
+Expense 1
+/addexpense 1200 Dinner @A @B @C
+Paid by: A
+
+
+Split:
+
+1200 / 3 = 400
+
+
+Debts:
+
+B owes A ₹400
+C owes A ₹400
+
+Expense 2
+/addexpense 600 Taxi @B @C
+Paid by: B
+
+
+Split:
+
+600 / 2 = 300
+
+
+Debts:
+
+C owes B ₹300
+
+Net Balance
+A +800
+B -100
+C -700
+
+Final Settlement
+C owes A ₹700
+B owes A ₹100
+
+
+✅ Clean
+✅ Minimal transactions
+✅ Easy to understand
+
+5️⃣ Displaying Output (Bot Friendly)
+/summary output:
+📊 Expense Summary
+
+B owes A ₹100
+C owes A ₹700
+
+6️⃣ Edge Cases (Must Handle)
+
+Payer not in mentions
+
+❌ Reject expense
+
+Reason: payer must be a participant
+
+Duplicate mentions
+
+Remove duplicates before splitting
+
+Uneven division
+
+Round to 2 decimals
+
+Adjust remainder to payer
+
+Single participant
+
+❌ Reject (no splitting needed)
