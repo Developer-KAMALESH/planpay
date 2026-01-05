@@ -253,6 +253,20 @@ export function setupTelegramBot() {
       });
     });
 
+    // Step 2.5: Process confirmed payments to update net balances
+    const payments = await storage.getPaymentsForEvent(event.id);
+    const confirmedPayments = payments.filter(p => p.status === 'CONFIRMED');
+    confirmedPayments.forEach(pay => {
+      const from = pay.fromUsername;
+      const to = pay.toUsername;
+      const amount = pay.amount;
+      if (!from || !to) return;
+      if (!(from in netBalances)) netBalances[from] = 0;
+      if (!(to in netBalances)) netBalances[to] = 0;
+      netBalances[from] += amount;
+      netBalances[to] -= amount;
+    });
+
     // Step 3: Convert net balances to pairwise debts
     const debtors: { user: string, balance: number }[] = [];
     const creditors: { user: string, balance: number }[] = [];
@@ -301,10 +315,11 @@ export function setupTelegramBot() {
     if (!event) return;
 
     const expenses = await storage.getExpensesForEvent(event.id);
-    const pending = expenses.some(e => e.status === 'PENDING');
+    const pending = expenses.filter(e => e.status === 'PENDING');
 
-    if (pending) {
-      bot?.sendMessage(chatId, "⚠️ Cannot close event: There are pending expenses waiting for approval.");
+    if (pending.length > 0) {
+      let pendingList = pending.map(e => `• ${e.description} (₹${(e.amount / 100).toFixed(2)})`).join('\n');
+      bot?.sendMessage(chatId, `⚠️ Cannot close event: There are pending expenses waiting for approval:\n\n${pendingList}`);
     } else {
       await storage.updateEventStatus(event.id, 'CLOSED');
       bot?.sendMessage(chatId, `🏁 Event "${event.name}" is now closed.`);
