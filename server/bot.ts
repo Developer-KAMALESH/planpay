@@ -237,19 +237,21 @@ export function setupTelegramBot() {
     
     const users = Object.keys(balances);
     if (users.length === 0) {
-      summaryText += "No expenses recorded yet.";
+      summaryText += "No confirmed expenses recorded yet.";
     } else {
-      summaryText += "*Net Balances:*\n";
+      summaryText += "*Net Balances (who owes what):*\n";
       users.forEach(user => {
         const bal = balances[user] / 100;
         if (bal > 0.01) {
-          summaryText += `@${user}: Owed ₹${bal.toFixed(2)}\n`;
+          summaryText += `@${user}: *Owed ₹${bal.toFixed(2)}*\n`;
         } else if (bal < -0.01) {
-          summaryText += `@${user}: Owes ₹${Math.abs(bal).toFixed(2)}\n`;
+          summaryText += `@${user}: *Owes ₹${Math.abs(bal).toFixed(2)}*\n`;
         } else {
           summaryText += `@${user}: Settled\n`;
         }
       });
+      
+      summaryText += "\n_Positive balance means you are owed money, negative means you owe others._";
     }
 
     bot?.sendMessage(chatId, summaryText, { parse_mode: 'Markdown' });
