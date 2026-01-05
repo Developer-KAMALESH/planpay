@@ -4,7 +4,8 @@ import { storage } from './storage';
 let bot: TelegramBot | null = null;
 
 export function setupTelegramBot() {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  //const token = process.env.TELEGRAM_BOT_TOKEN;
+    const token = "8380678251:AAETIXsCFZS8HsulqfTWDjcrSxN8HD2wp2c";
   if (!token) {
     console.warn("TELEGRAM_BOT_TOKEN not set. Bot functionality disabled.");
     return;
