@@ -351,23 +351,23 @@ export function setupTelegramBot() {
 🤖 *PLANPAL Bot Commands*
 
 *General Commands:*
-/start <event_code> - Initialize the bot with your event (Private Chat)
-/start_event <event_code> - Link this group to your event
+/start <event_code> \\- Initialize the bot with your event (Private Chat)
+/start_event <event_code> \\- Link this group to your event
 
 *Expense Tracking:*
-/add_expense <amount> <description> @mentions - Log an expense. If participants are mentioned, it waits for everyone's approval.
-/summary - View total confirmed expenses for the event.
+/add_expense <amount> <description> @mentions \\- Log an expense.
+/summary \\- View total confirmed expenses for the event.
 
 *Payments:*
-/paid @username <amount> - Record that you paid someone.
-/confirm_payment @username <amount> - Confirm you received a payment.
+/paid @username <amount> \\- Record that you paid someone.
+/confirm_payment @username <amount> \\- Confirm you received a payment.
 
 *Event Management:*
-/close_event - Close the event (all expenses must be confirmed/rejected).
-/help - Show this help message.
+/close_event \\- Close the event.
+/help \\- Show this help message.
 
 *Note:* All amounts are in ₹ (INR).
     `;
-    bot?.sendMessage(msg.chat.id, helpMessage, { parse_mode: 'Markdown' });
+    bot?.sendMessage(msg.chat.id, helpMessage.trim(), { parse_mode: 'MarkdownV2' });
   });
 }
