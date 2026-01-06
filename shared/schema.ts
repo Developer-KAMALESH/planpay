@@ -94,7 +94,9 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
 // === SCHEMAS ===
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
-export const insertEventSchema = createInsertSchema(events).omit({ id: true, createdAt: true, status: true, telegramGroupId: true });
+export const insertEventSchema = createInsertSchema(events).extend({
+  date: z.coerce.date()
+}).omit({ id: true, createdAt: true, status: true, telegramGroupId: true });
 export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true, status: true, votes: true });
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true, status: true });
 
