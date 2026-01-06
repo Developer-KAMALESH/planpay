@@ -24,6 +24,8 @@ export function setupTelegramBot() {
         }
       });
     }
+    // Also check for text mentions if entities are not correctly populated by some clients
+    // but usually entities are better. 
     return mentions;
   };
 
@@ -170,10 +172,11 @@ export function setupTelegramBot() {
     }
   });
 
-  bot.onText(/\/paid @(\w+) (\d+)/, async (msg, match) => {
+  bot.onText(/\/paid @([\w_]+) (\d+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const toUsername = match ? match[1] : "";
-    const amount = match ? parseInt(match[2]) : 0;
+    const amountRaw = match ? parseInt(match[2]) : 0;
+    const amount = amountRaw * 100;
     const fromUsername = msg.from?.username;
 
     if (!fromUsername || !toUsername) return;
@@ -187,17 +190,18 @@ export function setupTelegramBot() {
       fromUsername: fromUsername,
       toUserId: 0, 
       toUsername: toUsername,
-      amount: amount * 100, // Convert to cents for consistent storage
+      amount: amount,
       status: 'PENDING'
     });
 
-    bot?.sendMessage(chatId, `⏳ Payment claimed: @${fromUsername} → @${toUsername} ₹${amount}\nWaiting for confirmation from @${toUsername}. Run /confirm_payment @${fromUsername} ${amount}`);
+    bot?.sendMessage(chatId, `⏳ Payment claimed: @${fromUsername} → @${toUsername} ₹${amountRaw}\nWaiting for confirmation from @${toUsername}. Run /confirm_payment @${fromUsername} ${amountRaw}`);
   });
 
-  bot.onText(/\/confirm_payment @(\w+) (\d+)/, async (msg, match) => {
+  bot.onText(/\/confirm_payment @([\w_]+) (\d+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const fromUsername = match ? match[1] : "";
-    const amount = match ? parseInt(match[2]) : 0;
+    const amountRaw = match ? parseInt(match[2]) : 0;
+    const amount = amountRaw * 100; // Convert to cents
     const toUsername = msg.from?.username;
 
     if (!toUsername || !fromUsername) return;
@@ -206,11 +210,19 @@ export function setupTelegramBot() {
     if (!event) return;
 
     const payments = await storage.getPaymentsForEvent(event.id);
-    const pending = payments.find(p => p.amount === amount && p.status === 'PENDING');
+    // Find pending payment matching amount, fromUser and toUser
+    const pending = payments.find(p => 
+      p.amount === amount && 
+      p.status === 'PENDING' && 
+      p.fromUsername === fromUsername && 
+      p.toUsername === toUsername
+    );
 
     if (pending) {
       await storage.updatePaymentStatus(pending.id, 'CONFIRMED');
-      bot?.sendMessage(chatId, `✅ Payment confirmed: @${fromUsername} → @${toUsername} ₹${amount}`);
+      bot?.sendMessage(chatId, `✅ Payment confirmed: @${fromUsername} → @${toUsername} ₹${amountRaw}`);
+    } else {
+      bot?.sendMessage(chatId, `❌ No pending payment found for @${fromUsername} to @${toUsername} of ₹${amountRaw}`);
     }
   });
 
