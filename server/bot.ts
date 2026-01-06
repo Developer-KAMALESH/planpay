@@ -194,7 +194,9 @@ export function setupTelegramBot() {
       status: 'PENDING'
     });
 
-    bot?.sendMessage(chatId, `⏳ Payment claimed: @${fromUsername} → @${toUsername} ₹${amountRaw}\nWaiting for confirmation from @${toUsername}. Run /confirm_payment @${fromUsername} ${amountRaw}`);
+    const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+
+    bot?.sendMessage(chatId, `⏳ Payment claimed: @${escapeMarkdown(fromUsername)} → @${escapeMarkdown(toUsername)} ₹${amountRaw}\nWaiting for confirmation from @${escapeMarkdown(toUsername)}\\. Run \`/confirm_payment @${escapeMarkdown(fromUsername)} ${amountRaw}\``, { parse_mode: 'MarkdownV2' });
   });
 
   bot.onText(/\/confirm_payment @([\w_]+) (\d+)/, async (msg, match) => {
@@ -218,11 +220,13 @@ export function setupTelegramBot() {
       p.toUsername === toUsername
     );
 
+    const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+
     if (pending) {
       await storage.updatePaymentStatus(pending.id, 'CONFIRMED');
-      bot?.sendMessage(chatId, `✅ Payment confirmed: @${fromUsername} → @${toUsername} ₹${amountRaw}`);
+      bot?.sendMessage(chatId, `✅ Payment confirmed: @${escapeMarkdown(fromUsername)} → @${escapeMarkdown(toUsername)} ₹${amountRaw}`, { parse_mode: 'MarkdownV2' });
     } else {
-      bot?.sendMessage(chatId, `❌ No pending payment found for @${fromUsername} to @${toUsername} of ₹${amountRaw}`);
+      bot?.sendMessage(chatId, `❌ No pending payment found for @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)} of ₹${amountRaw}`, { parse_mode: 'MarkdownV2' });
     }
   });
 
@@ -279,6 +283,10 @@ export function setupTelegramBot() {
       netBalances[to] -= amount;
     });
 
+    const escapeMarkdown = (text: string) => {
+      return text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+    };
+
     // Step 3: Convert net balances to pairwise debts
     const debtors: { user: string, balance: number }[] = [];
     const creditors: { user: string, balance: number }[] = [];
@@ -300,7 +308,7 @@ export function setupTelegramBot() {
       const creditor = creditors[cIdx];
       const settlementAmount = Math.min(debtor.balance, creditor.balance);
 
-      settlements.push(`@${debtor.user} owes @${creditor.user} ₹${(settlementAmount / 100).toFixed(2)}`);
+      settlements.push(`@${escapeMarkdown(debtor.user)} owes @${escapeMarkdown(creditor.user)} ₹${(settlementAmount / 100).toFixed(2)}`);
 
       debtor.balance -= settlementAmount;
       creditor.balance -= settlementAmount;
@@ -310,7 +318,7 @@ export function setupTelegramBot() {
     }
 
     // Format output
-    let summaryText = `📊 *Expense Summary: ${event.name}*\n\n`;
+    let summaryText = `📊 *Expense Summary: ${escapeMarkdown(event.name)}*\n\n`;
     
     if (settlements.length === 0) {
       summaryText += "Everything is settled! ✅";
@@ -318,7 +326,7 @@ export function setupTelegramBot() {
       summaryText += settlements.join('\n');
     }
 
-    bot?.sendMessage(chatId, summaryText, { parse_mode: 'Markdown' });
+    bot?.sendMessage(chatId, summaryText, { parse_mode: 'MarkdownV2' });
   });
 
   bot.onText(/\/close_event/, async (msg) => {
