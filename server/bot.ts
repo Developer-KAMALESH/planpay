@@ -60,7 +60,8 @@ export function setupTelegramBot() {
 
   bot.onText(/\/add_expense (\d+) (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
-    const amount = match ? parseInt(match[1]) : 0;
+    const amountRaw = match ? parseInt(match[1]) : 0;
+    const amount = amountRaw * 100;
     const description = match ? match[2] : "";
     const fromId = msg.from?.id.toString();
     const fromUsername = msg.from?.username;
@@ -97,7 +98,7 @@ export function setupTelegramBot() {
       eventId: event.id,
       payerId: 0, // Placeholder
       description,
-      amount: amount * 100, // Convert to cents for consistent storage
+      amount: amount,
       splitAmong,
       votes: {},
       payerUsername: fromUsername || 'Unknown'
@@ -114,7 +115,7 @@ export function setupTelegramBot() {
       }
     };
 
-    bot?.sendMessage(chatId, `⏳ Expense Proposed: ${description} - ₹${amount}\nSplit among: ${splitAmong.map(u => '@' + u).join(', ')}\nWaiting for approval from all tagged participants.`, opts);
+    bot?.sendMessage(chatId, `⏳ Expense Proposed: ${description} - ₹${amountRaw}\nSplit among: ${splitAmong.map(u => '@' + u).join(', ')}\nWaiting for approval from all tagged participants.`, opts);
   });
 
   bot.on('callback_query', async (callbackQuery) => {
@@ -144,9 +145,11 @@ export function setupTelegramBot() {
       votes[fromUsername] = vote;
       await storage.updateExpenseVotes(expenseId, votes);
 
+      const amountRaw = expense.amount / 100;
+
       if (vote === 'disagree') {
         await storage.updateExpenseStatus(expenseId, 'REJECTED');
-        bot?.editMessageText(`❌ REJECTED: Expense "${expense.description}" - ₹${expense.amount} was rejected by @${fromUsername}.`, {
+        bot?.editMessageText(`❌ REJECTED: Expense "${expense.description}" - ₹${amountRaw} was rejected by @${fromUsername}.`, {
           chat_id: msg.chat.id,
           message_id: msg.message_id
         });
@@ -154,7 +157,7 @@ export function setupTelegramBot() {
         const agreedUsers = Object.keys(votes).filter(u => votes[u] === 'agree');
         if (agreedUsers.length >= splitAmong.length) {
           await storage.updateExpenseStatus(expenseId, 'CONFIRMED');
-          bot?.editMessageText(`✅ CONFIRMED: Expense "${expense.description}" - ₹${expense.amount} confirmed by all participants.`, {
+          bot?.editMessageText(`✅ CONFIRMED: Expense "${expense.description}" - ₹${amountRaw} confirmed by all participants.`, {
             chat_id: msg.chat.id,
             message_id: msg.message_id
           });
@@ -162,7 +165,7 @@ export function setupTelegramBot() {
           bot?.answerCallbackQuery(callbackQuery.id, { text: "Vote recorded! Waiting for others." });
           // Update message to show current progress
           const remaining = splitAmong.filter(u => !votes[u]);
-          bot?.editMessageText(`⏳ Expense Proposed: ${expense.description} - ₹${expense.amount}\nSplit among: ${splitAmong.map(u => '@' + u).join(', ')}\nWaiting for: ${remaining.map(u => '@' + u).join(', ')}`, {
+          bot?.editMessageText(`⏳ Expense Proposed: ${expense.description} - ₹${amountRaw}\nSplit among: ${splitAmong.map(u => '@' + u).join(', ')}\nWaiting for: ${remaining.map(u => '@' + u).join(', ')}`, {
             chat_id: msg.chat.id,
             message_id: msg.message_id,
             reply_markup: msg.reply_markup as TelegramBot.InlineKeyboardMarkup
@@ -308,7 +311,7 @@ export function setupTelegramBot() {
       const creditor = creditors[cIdx];
       const settlementAmount = Math.min(debtor.balance, creditor.balance);
 
-      settlements.push(`@${escapeMarkdown(debtor.user)} owes @${escapeMarkdown(creditor.user)} ₹${(settlementAmount / 100).toFixed(2)}`);
+      settlements.push(`@${escapeMarkdown(debtor.user)} owes @${escapeMarkdown(creditor.user)} ₹${(settlementAmount / 100).toFixed(2).replace('.', '\\.')}`);
 
       debtor.balance -= settlementAmount;
       creditor.balance -= settlementAmount;
@@ -321,7 +324,7 @@ export function setupTelegramBot() {
     let summaryText = `📊 *Expense Summary: ${escapeMarkdown(event.name)}*\n\n`;
     
     if (settlements.length === 0) {
-      summaryText += "Everything is settled! ✅";
+      summaryText += "Everything is settled\\! ✅";
     } else {
       summaryText += settlements.join('\n');
     }
