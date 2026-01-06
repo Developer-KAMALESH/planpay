@@ -95,7 +95,7 @@ export function setupTelegramBot() {
       eventId: event.id,
       payerId: 0, // Placeholder
       description,
-      amount,
+      amount: amount * 100, // Convert to cents for consistent storage
       splitAmong,
       votes: {},
       payerUsername: fromUsername || 'Unknown'
@@ -187,7 +187,7 @@ export function setupTelegramBot() {
       fromUsername: fromUsername,
       toUserId: 0, 
       toUsername: toUsername,
-      amount,
+      amount: amount * 100, // Convert to cents for consistent storage
       status: 'PENDING'
     });
 
