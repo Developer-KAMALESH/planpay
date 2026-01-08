@@ -53,11 +53,55 @@ import { insertExpenseSchema, type InsertExpense } from "@shared/routes";
 import { useState } from "react";
 import { z } from "zod";
 
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+
 export default function EventDetails() {
     const [, params] = useRoute("/events/:id");
     const eventId = Number(params?.id);
     const { user } = useAuth();
     const { data: event, isLoading } = useEvent(eventId);
+    
+    const downloadPDF = () => {
+        if (!event) return;
+        const doc = new jsPDF();
+        doc.setFontSize(20);
+        doc.text(`Event Report: ${event.name}`, 14, 22);
+        doc.setFontSize(11);
+        doc.text(`Code: ${event.code}`, 14, 30);
+        doc.text(`Date: ${format(new Date(event.date), "PPP")}`, 14, 35);
+        doc.text(`Created: ${format(new Date(event.createdAt || new Date()), "PPP p")}`, 14, 40);
+
+        // Expenses Table
+        doc.setFontSize(14);
+        doc.text("Expenses", 14, 50);
+        (doc as any).autoTable({
+            startY: 55,
+            head: [['Description', 'Paid By', 'Date', 'Amount']],
+            body: event.expenses.map(e => [
+                e.description,
+                e.payerUsername || `User #${e.payerId}`,
+                format(new Date(e.createdAt || new Date()), "MMM d"),
+                `INR ${(e.amount / 100).toFixed(2)}`
+            ]),
+        });
+
+        // Payments Table
+        const finalY = (doc as any).lastAutoTable.finalY || 60;
+        doc.text("Settlements", 14, finalY + 15);
+        (doc as any).autoTable({
+            startY: finalY + 20,
+            head: [['From', 'To', 'Date/Time', 'Amount']],
+            body: event.payments.map(p => [
+                `@${p.fromUsername || p.fromUserId}`,
+                `@${p.toUsername || p.toUserId}`,
+                format(new Date(p.createdAt || new Date()), "MMM d, HH:mm"),
+                `INR ${(p.amount / 100).toFixed(2)}`
+            ]),
+        });
+
+        doc.save(`${event.name.replace(/\s+/g, '_')}_report.pdf`);
+    };
     const { mutate: createExpense, isPending: isAddingExpense } =
         useCreateExpense();
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
@@ -170,6 +214,15 @@ export default function EventDetails() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                            variant="outline"
+                            className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
+                            onClick={downloadPDF}
+                        >
+                            <CreditCard className="w-4 h-4" />
+                            Download PDF
+                        </Button>
+
                         <Button
                             variant="outline"
                             className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"

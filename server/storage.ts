@@ -169,6 +169,14 @@ export class DatabaseStorage implements IStorage {
       .set({ status })
       .where(eq(payments.id, paymentId));
   }
+  async updateEvent(id: number, data: Partial<InsertEvent>): Promise<Event> {
+    const [updated] = await db.update(events).set(data).where(eq(events.id, id)).returning();
+    return updated;
+  }
+
+  async deleteEvent(id: number): Promise<void> {
+    await db.delete(events).where(eq(events.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();

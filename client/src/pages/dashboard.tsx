@@ -48,10 +48,16 @@ import {
 import { useState } from "react";
 import { motion } from "framer-motion";
 
+import { Trash2, Edit2 } from "lucide-react";
+import { useUpdateEvent, useDeleteEvent } from "@/hooks/use-events";
+
 export default function Dashboard() {
   const { data: events, isLoading } = useEvents();
   const { mutate: createEvent, isPending: isCreating } = useCreateEvent();
+  const { mutate: updateEvent } = useUpdateEvent();
+  const { mutate: deleteEvent } = useDeleteEvent();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
 
   const form = useForm<InsertEvent>({
     resolver: zodResolver(insertEventSchema),
@@ -265,47 +271,85 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                 >
-                    <Link href={`/events/${event.id}`}>
-                    <Card className="group hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 cursor-pointer h-full flex flex-col">
-                        <CardHeader>
-                        <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                                <CardTitle className="text-xl group-hover:text-primary transition-colors">
-                                    {event.name}
-                                </CardTitle>
-                                <CardDescription className="flex items-center gap-1">
-                                    <CalendarIcon className="w-3.5 h-3.5" />
-                                    {format(new Date(event.date), "MMMM d, yyyy")}
-                                </CardDescription>
+                    <div className="flex gap-2">
+                      <Link href={`/events/${event.id}`} className="flex-1">
+                        <Card className="group hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 cursor-pointer h-full flex flex-col">
+                            <CardHeader>
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                    <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                                        {event.name}
+                                    </CardTitle>
+                                    <CardDescription className="flex items-center gap-1">
+                                        <CalendarIcon className="w-3.5 h-3.5" />
+                                        {format(new Date(event.date), "MMMM d, yyyy")}
+                                    </CardDescription>
+                                </div>
+                                <div className="bg-secondary px-2.5 py-1 rounded-md text-xs font-mono font-medium text-secondary-foreground border border-border">
+                                    {event.code}
+                                </div>
                             </div>
-                            <div className="bg-secondary px-2.5 py-1 rounded-md text-xs font-mono font-medium text-secondary-foreground border border-border">
-                                {event.code}
-                            </div>
-                        </div>
-                        </CardHeader>
-                        <CardContent className="flex-1">
-                            {event.description && (
-                                <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                                    {event.description}
-                                </p>
-                            )}
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                {event.location && (
-                                    <div className="flex items-center gap-1.5">
-                                        <MapPin className="w-4 h-4" />
-                                        <span>{event.location}</span>
-                                    </div>
+                            </CardHeader>
+                            <CardContent className="flex-1">
+                                {event.description && (
+                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                                        {event.description}
+                                    </p>
                                 )}
-                            </div>
-                        </CardContent>
-                        <CardFooter className="border-t bg-muted/30 pt-4 mt-auto">
-                             <div className="flex items-center justify-between w-full text-sm font-medium text-primary">
-                                <span>View Details</span>
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                             </div>
-                        </CardFooter>
-                    </Card>
-                    </Link>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    {event.location && (
+                                        <div className="flex items-center gap-1.5">
+                                            <MapPin className="w-4 h-4" />
+                                            <span>{event.location}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                            <CardFooter className="border-t bg-muted/30 pt-4 mt-auto">
+                                <div className="flex items-center justify-between w-full text-sm font-medium text-primary">
+                                    <span>View Details</span>
+                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            </CardFooter>
+                        </Card>
+                      </Link>
+                      {!event.telegramGroupId && (
+                        <div className="flex flex-col gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setEditingEvent(event);
+                              form.reset({
+                                name: event.name,
+                                code: event.code,
+                                location: event.location || "",
+                                description: event.description || "",
+                                date: new Date(event.date),
+                                creatorId: event.creatorId
+                              });
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (confirm("Delete this event?")) {
+                                deleteEvent(event.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                 </motion.div>
               ))
             )}

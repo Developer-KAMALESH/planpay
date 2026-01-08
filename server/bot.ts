@@ -396,7 +396,156 @@ export function setupTelegramBot() {
     }
   });
 
-  bot.onText(/\/help/, (msg) => {
+  bot.onText(/\/report/, async (msg) => {
+    const chatId = msg.chat.id;
+    const event = await storage.getEventByTelegramGroupId(chatId.toString());
+    if (!event) return;
+
+    const expenses = await storage.getExpensesForEvent(event.id);
+    const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
+    const payments = await storage.getPaymentsForEvent(event.id);
+    const confirmedPayments = payments.filter(p => p.status === 'CONFIRMED');
+
+    const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+
+    let report = `📋 *Event Report: ${escapeMarkdown(event.name)}*\n`;
+    report += `📅 Start: ${escapeMarkdown(format(new Date(event.createdAt || new Date()), "PPP, p"))}\n\n`;
+
+    report += `💰 *Confirmed Expenses:*\n`;
+    if (confirmedExpenses.length === 0) report += "None\n";
+    confirmedExpenses.forEach(exp => {
+      report += `• ${escapeMarkdown(exp.description)}: ₹${(exp.amount / 100).toFixed(2).replace('.', '\\.')} \\(by @${escapeMarkdown(exp.payerUsername || 'Unknown')}\\)\n`;
+    });
+
+    report += `\n🤝 *Settlement History:*\n`;
+    if (confirmedPayments.length === 0) report += "None\n";
+    confirmedPayments.forEach(pay => {
+      report += `• @${escapeMarkdown(pay.fromUsername || 'Unknown')} → @${escapeMarkdown(pay.toUsername || 'Unknown')} ₹${(pay.amount / 100).toFixed(2).replace('.', '\\.')} \\(${escapeMarkdown(format(new Date(pay.createdAt || new Date()), "MMM d, HH:mm"))}\\)\n`;
+    });
+
+    // Calculate net balances for "yet to be paid"
+    const netBalances: Record<string, number> = {};
+    confirmedExpenses.forEach(exp => {
+      const amount = exp.amount;
+      const splitAmong = Array.from(new Set(exp.splitAmong || []));
+      const payer = exp.payerUsername;
+      if (!payer || splitAmong.length === 0 || !splitAmong.includes(payer)) return;
+      const share = amount / splitAmong.length;
+      if (!(payer in netBalances)) netBalances[payer] = 0;
+      splitAmong.forEach(u => { if (!(u in netBalances)) netBalances[u] = 0; });
+      netBalances[payer] += share * (splitAmong.length - 1);
+      splitAmong.forEach(user => { if (user !== payer) netBalances[user] -= share; });
+    });
+
+    confirmedPayments.forEach(pay => {
+      const from = pay.fromUsername;
+      const to = pay.toUsername;
+      if (!from || !to) return;
+      if (!(from in netBalances)) netBalances[from] = 0;
+      if (!(to in netBalances)) netBalances[to] = 0;
+      netBalances[from] += pay.amount;
+      netBalances[to] -= pay.amount;
+    });
+
+    const debtors: { user: string, balance: number }[] = [];
+    const creditors: { user: string, balance: number }[] = [];
+    Object.entries(netBalances).forEach(([user, balance]) => {
+      if (balance < -0.01) debtors.push({ user, balance: Math.abs(balance) });
+      else if (balance > 0.01) creditors.push({ user, balance });
+    });
+
+    report += `\n⚖️ *Outstanding Balances:*\n`;
+    let settlements = 0;
+    let dIdx = 0, cIdx = 0;
+    while (dIdx < debtors.length && cIdx < creditors.length) {
+      const debtor = debtors[dIdx];
+      const creditor = creditors[cIdx];
+      const settlementAmount = Math.min(debtor.balance, creditor.balance);
+      report += `• @${escapeMarkdown(debtor.user)} owes @${escapeMarkdown(creditor.user)} ₹${(settlementAmount / 100).toFixed(2).replace('.', '\\.')}\n`;
+      debtor.balance -= settlementAmount;
+      creditor.balance -= settlementAmount;
+      if (debtor.balance < 0.01) dIdx++;
+      if (creditor.balance < 0.01) cIdx++;
+      settlements++;
+    }
+    if (settlements === 0) report += "All settled\\! ✅\n";
+
+    bot?.sendMessage(chatId, report, { parse_mode: 'MarkdownV2' });
+  });
+
+  bot.onText(/\/report/, async (msg) => {
+    const chatId = msg.chat.id;
+    const event = await storage.getEventByTelegramGroupId(chatId.toString());
+    if (!event) return;
+
+    const expenses = await storage.getExpensesForEvent(event.id);
+    const payments = await storage.getPaymentsForEvent(event.id);
+    const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
+    const confirmedPayments = payments.filter(p => p.status === 'CONFIRMED');
+
+    const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+
+    let report = `📋 *Event Report: ${escapeMarkdown(event.name)}*\n`;
+    report += `📅 Start: ${format(new Date(event.createdAt || new Date()), "MMM d, yyyy h:mm a")}\n\n`;
+
+    report += `💰 *Confirmed Expenses:*\n`;
+    if (confirmedExpenses.length === 0) report += "_None_\n";
+    confirmedExpenses.forEach(e => {
+      report += `• ${escapeMarkdown(e.description)}: ₹${(e.amount / 100).toFixed(2).replace('.', '\\.')} \\(by @${escapeMarkdown(e.payerUsername || 'unknown')}\\)\n`;
+    });
+
+    report += `\n🤝 *Settlements:*\n`;
+    if (confirmedPayments.length === 0) report += "_None_\n";
+    confirmedPayments.forEach(p => {
+      const time = format(new Date(p.createdAt || new Date()), "HH:mm");
+      report += `• @${escapeMarkdown(p.fromUsername || 'unknown')} → @${escapeMarkdown(p.toUsername || 'unknown')} ₹${(p.amount / 100).toFixed(2).replace('.', '\\.')} \\(@ ${time}\\)\n`;
+    });
+
+    // Net balances for "Yet to be paid"
+    const netBalances: Record<string, number> = {};
+    confirmedExpenses.forEach(exp => {
+      const splitAmong = Array.from(new Set(exp.splitAmong || []));
+      const payer = exp.payerUsername;
+      if (!payer || splitAmong.length === 0 || !splitAmong.includes(payer)) return;
+      const share = exp.amount / splitAmong.length;
+      if (!(payer in netBalances)) netBalances[payer] = 0;
+      splitAmong.forEach(u => { if (!(u in netBalances)) netBalances[u] = 0; });
+      netBalances[payer] += share * (splitAmong.length - 1);
+      splitAmong.forEach(user => { if (user !== payer) netBalances[user] -= share; });
+    });
+    confirmedPayments.forEach(pay => {
+      if (!pay.fromUsername || !pay.toUsername) return;
+      if (!(pay.fromUsername in netBalances)) netBalances[pay.fromUsername] = 0;
+      if (!(pay.toUsername in netBalances)) netBalances[pay.toUsername] = 0;
+      netBalances[pay.fromUsername] += pay.amount;
+      netBalances[pay.toUsername] -= pay.amount;
+    });
+
+    const debtors: { user: string, balance: number }[] = [];
+    const creditors: { user: string, balance: number }[] = [];
+    Object.entries(netBalances).forEach(([user, balance]) => {
+      if (balance < -1) debtors.push({ user, balance: Math.abs(balance) });
+      else if (balance > 1) creditors.push({ user, balance });
+    });
+
+    report += `\n⏳ *Pending Debts:*\n`;
+    let hasDebts = false;
+    let dIdx = 0, cIdx = 0;
+    const tempDebtors = JSON.parse(JSON.stringify(debtors));
+    const tempCreditors = JSON.parse(JSON.stringify(creditors));
+    while (dIdx < tempDebtors.length && cIdx < tempCreditors.length) {
+      const settlement = Math.min(tempDebtors[dIdx].balance, tempCreditors[cIdx].balance);
+      report += `• @${escapeMarkdown(tempDebtors[dIdx].user)} owes @${escapeMarkdown(tempCreditors[cIdx].user)} ₹${(settlement / 100).toFixed(2).replace('.', '\\.')}\n`;
+      tempDebtors[dIdx].balance -= settlement;
+      tempCreditors[cIdx].balance -= settlement;
+      if (tempDebtors[dIdx].balance < 1) dIdx++;
+      if (tempCreditors[cIdx].balance < 1) cIdx++;
+      hasDebts = true;
+    }
+    if (!hasDebts) report += "_All settled\\!_ ✅\n";
+
+    bot?.sendMessage(chatId, report, { parse_mode: 'MarkdownV2' });
+  });
     const helpMessage = `
 🤖 *PLANPAL Bot Commands*
 

@@ -88,5 +88,26 @@ export async function registerRoutes(
     res.json(expenses);
   });
 
+  app.patch(api.events.get.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const event = await storage.getEvent(Number(req.params.id));
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (event.telegramGroupId) return res.status(403).json({ message: "Cannot edit active events" });
+    
+    const input = api.events.create.input.partial().parse(req.body);
+    const updated = await storage.updateEvent(event.id, input);
+    res.json(updated);
+  });
+
+  app.delete(api.events.get.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const event = await storage.getEvent(Number(req.params.id));
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (event.telegramGroupId) return res.status(403).json({ message: "Cannot delete active events" });
+    
+    await storage.deleteEvent(event.id);
+    res.sendStatus(204);
+  });
+
   return httpServer;
 }
