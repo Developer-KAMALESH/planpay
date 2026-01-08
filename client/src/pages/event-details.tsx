@@ -421,18 +421,26 @@ export default function EventDetails() {
                                         {event.payments.map((payment) => (
                                             <li
                                                 key={payment.id}
-                                                className="flex justify-between items-center text-sm border-b pb-2 last:border-0"
+                                                className="flex flex-col gap-1 text-sm border-b pb-2 last:border-0"
                                             >
-                                                <span>
-                                                    User #{payment.fromUserId} →
-                                                    User #{payment.toUserId}
-                                                </span>
-                                                <span className="font-medium text-green-600">
-                                                    ₹
-                                                    {(
-                                                        payment.amount / 100
-                                                    ).toFixed(2)}
-                                                </span>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-medium">
+                                                        @{payment.fromUsername || `User #${payment.fromUserId}`} →
+                                                        @{payment.toUsername || `User #${payment.toUserId}`}
+                                                    </span>
+                                                    <span className="font-bold text-green-600">
+                                                        ₹
+                                                        {(
+                                                            payment.amount / 100
+                                                        ).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {format(
+                                                        new Date(payment.createdAt || new Date()),
+                                                        "MMM d, h:mm a"
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
