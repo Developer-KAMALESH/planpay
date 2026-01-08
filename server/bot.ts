@@ -51,6 +51,21 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     bot.sendMessage(chatId, `Successfully joined event: ${event.name}`);
   });
 
+  bot.onText(/\/summary/, async (msg) => {
+    const chatId = msg.chat.id;
+    const event = await storage.getEventByTelegramGroupId(chatId.toString());
+    if (!event) return;
+
+    const expenses = await storage.getExpensesForEvent(event.id);
+    const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
+    const totalCents = confirmedExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    let text = `💰 *Event Summary: ${escapeMarkdown(event.name)}*\n`;
+    text += `Total Confirmed Expenses: ₹${(totalCents / 100).toFixed(2).replace('.', '\\.')}\n`;
+    
+    bot.sendMessage(chatId, text, { parse_mode: 'MarkdownV2' });
+  });
+
   bot.onText(/\/report/, async (msg) => {
     const chatId = msg.chat.id;
     const event = await storage.getEventByTelegramGroupId(chatId.toString());
@@ -124,6 +139,28 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     if (!hasDebts) report += "_All settled\\!_ ✅\n";
 
     bot.sendMessage(chatId, report, { parse_mode: 'MarkdownV2' });
+  });
+
+  bot.onText(/\/closeevent/, async (msg) => {
+    const chatId = msg.chat.id;
+    const event = await storage.getEventByTelegramGroupId(chatId.toString());
+    if (!event) return;
+
+    if (event.status === 'CLOSED') {
+      bot.sendMessage(chatId, "Event is already closed.");
+      return;
+    }
+
+    const expenses = await storage.getExpensesForEvent(event.id);
+    const pendingExpenses = expenses.filter(e => e.status === 'PENDING');
+
+    if (pendingExpenses.length > 0) {
+      bot.sendMessage(chatId, `Cannot close event. There are ${pendingExpenses.length} pending expenses that need approval or rejection.`);
+      return;
+    }
+
+    await storage.updateEventStatus(event.id, 'CLOSED');
+    bot.sendMessage(chatId, `✅ Event *${escapeMarkdown(event.name)}* has been closed successfully.`, { parse_mode: 'MarkdownV2' });
   });
 
   bot.onText(/\/help/, (msg) => {
