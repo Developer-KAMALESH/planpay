@@ -74,6 +74,11 @@ export function setupTelegramBot() {
       return;
     }
 
+    if (event.status === 'CLOSED') {
+      bot?.sendMessage(chatId, "❌ Event is closed. No more expenses can be added.");
+      return;
+    }
+
     const mentions = getMentions(msg);
     // Remove duplicates
     let splitAmong = Array.from(new Set(mentions));
@@ -187,7 +192,12 @@ export function setupTelegramBot() {
     const event = await storage.getEventByTelegramGroupId(chatId.toString());
     if (!event) return;
 
-    const payment = await storage.createPayment({
+    if (event.status === 'CLOSED') {
+      bot?.sendMessage(chatId, "❌ Event is closed. No more payments can be recorded.");
+      return;
+    }
+
+    await storage.createPayment({
       eventId: event.id,
       fromUserId: 0, 
       fromUsername: fromUsername,
@@ -338,14 +348,51 @@ export function setupTelegramBot() {
     if (!event) return;
 
     const expenses = await storage.getExpensesForEvent(event.id);
-    const pending = expenses.filter(e => e.status === 'PENDING');
+    const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
+    
+    // Calculate net balances to check if settled
+    const netBalances: Record<string, number> = {};
+    confirmedExpenses.forEach(exp => {
+      const amount = exp.amount;
+      const splitAmong = Array.from(new Set(exp.splitAmong || []));
+      const payer = exp.payerUsername;
+      if (!payer || splitAmong.length === 0 || !splitAmong.includes(payer)) return;
+      const share = amount / splitAmong.length;
+      if (!(payer in netBalances)) netBalances[payer] = 0;
+      splitAmong.forEach(u => { if (!(u in netBalances)) netBalances[u] = 0; });
+      netBalances[payer] += share * (splitAmong.length - 1);
+      splitAmong.forEach(user => { if (user !== payer) netBalances[user] -= share; });
+    });
 
-    if (pending.length > 0) {
-      let pendingList = pending.map(e => `• ${e.description} (₹${(e.amount / 100).toFixed(2)})`).join('\n');
-      bot?.sendMessage(chatId, `⚠️ Cannot close event: There are pending expenses waiting for approval:\n\n${pendingList}`);
+    const payments = await storage.getPaymentsForEvent(event.id);
+    const confirmedPayments = payments.filter(p => p.status === 'CONFIRMED');
+    confirmedPayments.forEach(pay => {
+      const from = pay.fromUsername;
+      const to = pay.toUsername;
+      const amount = pay.amount;
+      if (!from || !to) return;
+      if (!(from in netBalances)) netBalances[from] = 0;
+      if (!(to in netBalances)) netBalances[to] = 0;
+      netBalances[from] += amount;
+      netBalances[to] -= amount;
+    });
+
+    const isSettled = Object.values(netBalances).every(b => Math.abs(b) < 1); // 1 cent threshold
+    const pendingExpenses = expenses.filter(e => e.status === 'PENDING');
+    const pendingPayments = payments.filter(p => p.status === 'PENDING');
+
+    const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+
+    if (pendingExpenses.length > 0 || pendingPayments.length > 0 || !isSettled) {
+      let reason = "";
+      if (pendingExpenses.length > 0) reason += "• Pending expenses waiting for approval\\.\n";
+      if (pendingPayments.length > 0) reason += "• Pending payments waiting for confirmation\\.\n";
+      if (!isSettled) reason += "• Group is not fully settled\\.\n";
+
+      bot?.sendMessage(chatId, `⚠️ Cannot close event:\n\n${reason}`, { parse_mode: 'MarkdownV2' });
     } else {
       await storage.updateEventStatus(event.id, 'CLOSED');
-      bot?.sendMessage(chatId, `🏁 Event "${event.name}" is now closed.`);
+      bot?.sendMessage(chatId, `🏁 Event "${escapeMarkdown(event.name)}" is now closed\\.`, { parse_mode: 'MarkdownV2' });
     }
   });
 
