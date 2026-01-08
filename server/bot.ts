@@ -15,7 +15,7 @@ export function setupTelegramBot() {
 🤖 *PLANPAL Bot Commands*
 
 General Commands:
-/start \\<eventcode\\> \\- Initialize the bot with your event (Private Chat)
+/start \\<eventcode\\> \\- Initialize the bot with your event \\(Private Chat\\)
 /startevent \\<eventcode\\> \\- Link this group to your event
 
 *Expense Tracking:*
@@ -28,10 +28,10 @@ Payments:
 /confirmpayment @username \\<amount\\> \\- Confirm you received a payment\\.
 
 *Event Management:*
-/closeevent \\- Close the event (all expenses must be confirmed/rejected)\\.
+/closeevent \\- Close the event \\(all expenses must be confirmed/rejected\\)\\.
 /help \\- Show this help message\\.
 
-Note: All amounts are in ₹ (INR)\\.
+Note: All amounts are in ₹ \\(INR\\)\\.
     `;
     bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'MarkdownV2' });
   });
@@ -131,7 +131,7 @@ Note: All amounts are in ₹ (INR)\\.
 🤖 *PLANPAL Bot Commands*
 
 General Commands:
-/start \\<eventcode\\> \\- Initialize the bot with your event (Private Chat)
+/start \\<eventcode\\> \\- Initialize the bot with your event \\(Private Chat\\)
 /startevent \\<eventcode\\> \\- Link this group to your event
 
 *Expense Tracking:*
@@ -144,10 +144,10 @@ Payments:
 /confirmpayment @username \\<amount\\> \\- Confirm you received a payment\\.
 
 *Event Management:*
-/closeevent \\- Close the event (all expenses must be confirmed/rejected)\\.
+/closeevent \\- Close the event \\(all expenses must be confirmed/rejected\\)\\.
 /help \\- Show this help message\\.
 
-Note: All amounts are in ₹ (INR)\\.
+Note: All amounts are in ₹ \\(INR\\)\\.
     `;
     bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'MarkdownV2' });
   });
