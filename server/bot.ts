@@ -8,11 +8,35 @@ export function setupTelegramBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
+  const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+
   bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, "Welcome to PlanPal! Join an event with /join <code_here>");
+    const helpText = `
+🤖 *PLANPAL Bot Commands*
+
+General Commands:
+/start \\<eventcode\\> \\- Initialize the bot with your event (Private Chat)
+/startevent \\<eventcode\\> \\- Link this group to your event
+
+*Expense Tracking:*
+/addexpense \\<amount\\> \\<description\\> @mentions \\- Log an expense\\. If participants are mentioned, it waits for everyone's approval\\.
+/summary \\- View total confirmed expenses for the event\\.
+/report \\- View full detailed event report\\.
+
+Payments:
+/paid @username \\<amount\\> \\- Record that you paid someone\\.
+/confirmpayment @username \\<amount\\> \\- Confirm you received a payment\\.
+
+*Event Management:*
+/closeevent \\- Close the event (all expenses must be confirmed/rejected)\\.
+/help \\- Show this help message\\.
+
+Note: All amounts are in ₹ (INR)\\.
+    `;
+    bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'MarkdownV2' });
   });
 
-  bot.onText(/\/join (.+)/, async (msg, match) => {
+  bot.onText(/\/startevent (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const code = match?.[1];
     if (!code) return;
@@ -36,8 +60,6 @@ export function setupTelegramBot() {
     const payments = await storage.getPaymentsForEvent(event.id);
     const confirmedExpenses = expenses.filter(e => e.status === 'CONFIRMED');
     const confirmedPayments = payments.filter(p => p.status === 'CONFIRMED');
-
-    const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
 
     let report = `📋 *Event Report: ${escapeMarkdown(event.name)}*\n`;
     report += `📅 Start: ${format(new Date(event.createdAt || new Date()), "MMM d, yyyy h:mm a")}\n\n`;
@@ -108,21 +130,25 @@ export function setupTelegramBot() {
     const helpText = `
 🤖 *PLANPAL Bot Commands*
 
-*Events:*
-/start \\- Start interacting with the bot\\.
-/join \\<code\\> \\- Join an event using its unique code\\.
+General Commands:
+/start \\<eventcode\\> \\- Initialize the bot with your event (Private Chat)
+/startevent \\<eventcode\\> \\- Link this group to your event
+
+*Expense Tracking:*
+/addexpense \\<amount\\> \\<description\\> @mentions \\- Log an expense\\. If participants are mentioned, it waits for everyone's approval\\.
 /summary \\- View total confirmed expenses for the event\\.
 /report \\- View full detailed event report\\.
 
-*Payments:*
-/pay \\<amount\\> \\[@username\\] \\- Log a payment made to someone\\.
-/settle \\[@username\\] \\- Settle all debts with someone\\.
+Payments:
+/paid @username \\<amount\\> \\- Record that you paid someone\\.
+/confirmpayment @username \\<amount\\> \\- Confirm you received a payment\\.
 
-*Expenses:*
-Send an expense in format: \`\\<amount\\> \\<description\\>\`
-Example: \`500 Lunch at Central Perk\`
-_Note: Expenses require consensus from participants before confirmation\\._
-`;
+*Event Management:*
+/closeevent \\- Close the event (all expenses must be confirmed/rejected)\\.
+/help \\- Show this help message\\.
+
+Note: All amounts are in ₹ (INR)\\.
+    `;
     bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'MarkdownV2' });
   });
 }
