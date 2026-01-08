@@ -54,7 +54,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 export default function EventDetails() {
     const [, params] = useRoute("/events/:id");
@@ -75,7 +75,7 @@ export default function EventDetails() {
         // Expenses Table
         doc.setFontSize(14);
         doc.text("Expenses", 14, 50);
-        (doc as any).autoTable({
+        autoTable(doc, {
             startY: 55,
             head: [['Description', 'Paid By', 'Date', 'Amount']],
             body: event.expenses.map(e => [
@@ -89,7 +89,7 @@ export default function EventDetails() {
         // Payments Table
         const finalY = (doc as any).lastAutoTable.finalY || 60;
         doc.text("Settlements", 14, finalY + 15);
-        (doc as any).autoTable({
+        autoTable(doc, {
             startY: finalY + 20,
             head: [['From', 'To', 'Date/Time', 'Amount']],
             body: event.payments.map(p => [
