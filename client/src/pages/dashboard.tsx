@@ -2,7 +2,7 @@ import { useEvents, useCreateEvent } from "@/hooks/use-events";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertEventSchema, type InsertEvent } from "@shared/routes";
+import { insertEventSchema, type InsertEvent } from "@shared/schema";
 import { Layout } from "@/components/layout";
 import {
   Card,

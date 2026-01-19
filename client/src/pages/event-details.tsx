@@ -49,7 +49,7 @@ import {
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertExpenseSchema, type InsertExpense } from "@shared/routes";
+import { insertExpenseSchema, type InsertExpense } from "@shared/schema";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -374,7 +374,7 @@ export default function EventDetails() {
                                         <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-20" />
                                         <p>No expenses recorded yet.</p>
                                         <Button
-                                            variant="link"
+                                            variant="ghost"
                                             onClick={() =>
                                                 setIsExpenseDialogOpen(true)
                                             }
