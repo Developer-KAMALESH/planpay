@@ -163,6 +163,100 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     bot.sendMessage(chatId, `✅ Event *${escapeMarkdown(event.name)}* has been closed successfully.`, { parse_mode: 'MarkdownV2' });
   });
 
+  bot.onText(/\/addexpense (\d+)(?:\.\d{2})? (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const amountStr = match?.[1];
+    const description = match?.[2];
+    if (!amountStr || !description) return;
+
+    const event = await storage.getEventByTelegramGroupId(chatId.toString());
+    if (!event) {
+      bot.sendMessage(chatId, "This group is not linked to any event. Use /startevent <code| to link.");
+      return;
+    }
+
+    const amount = Math.round(parseFloat(amountStr) * 100);
+    const mentions = msg.entities?.filter(e => e.type === 'mention').map(e => msg.text?.substring(e.offset + 1, e.offset + e.length)) || [];
+    const payerUsername = msg.from?.username;
+
+    if (!payerUsername) {
+      bot.sendMessage(chatId, "Could not identify you. Please ensure you have a Telegram username.");
+      return;
+    }
+
+    const splitAmong = (mentions.length > 0 ? mentions : [payerUsername]).filter((m): m is string => !!m);
+    
+    await storage.createExpense({
+      eventId: event.id,
+      amount,
+      description,
+      payerUsername,
+      payerId: 0, // Backend logic in storage.ts will handle this or we'll link it later
+      splitAmong,
+      status: mentions.length > 0 ? 'PENDING' : 'CONFIRMED',
+    } as any);
+
+    const amountFormatted = (amount / 100).toFixed(2).replace('.', '\\.');
+    if (mentions.length > 0) {
+      bot.sendMessage(chatId, `Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" added. Waiting for approval from: ${mentions.map(m => '@' + escapeMarkdown(m || 'unknown')).join(', ')}`, { parse_mode: 'MarkdownV2' });
+    } else {
+      bot.sendMessage(chatId, `✅ Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" confirmed.`, { parse_mode: 'MarkdownV2' });
+    }
+  });
+
+  bot.onText(/\/paid @(\w+) (\d+)(?:\.\d{2})?/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const toUsername = match?.[1];
+    const amountStr = match?.[2];
+    if (!toUsername || !amountStr) return;
+
+    const event = await storage.getEventByTelegramGroupId(chatId.toString());
+    if (!event) return;
+
+    const fromUsername = msg.from?.username;
+    if (!fromUsername) return;
+
+    const amount = Math.round(parseFloat(amountStr) * 100);
+    
+    await storage.createPayment({
+      eventId: event.id,
+      fromUsername,
+      toUsername,
+      amount,
+      fromUserId: 0,
+      toUserId: 0,
+    } as any);
+
+    const amountFormatted = (amount / 100).toFixed(2).replace('.', '\\.');
+    bot.sendMessage(chatId, `Payment of ₹${amountFormatted} recorded from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)}. @${escapeMarkdown(toUsername)}, please confirm with /confirmpayment @${escapeMarkdown(fromUsername)} ₹${amountFormatted}`, { parse_mode: 'MarkdownV2' });
+  });
+
+  bot.onText(/\/confirmpayment @(\w+) (\d+)(?:\.\d{2})?/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const fromUsername = match?.[1];
+    const amountStr = match?.[2];
+    if (!fromUsername || !amountStr) return;
+
+    const event = await storage.getEventByTelegramGroupId(chatId.toString());
+    if (!event) return;
+
+    const toUsername = msg.from?.username;
+    if (!toUsername) return;
+
+    const amount = Math.round(parseFloat(amountStr) * 100);
+    const payments = await storage.getPaymentsForEvent(event.id);
+    const payment = payments.find(p => p.fromUsername === fromUsername && p.toUsername === toUsername && p.amount === amount && p.status === 'PENDING');
+
+    if (!payment) {
+      bot.sendMessage(chatId, "No pending payment found matching these details.");
+      return;
+    }
+
+    await storage.updatePaymentStatus(payment.id, 'CONFIRMED');
+    const amountFormatted = (amount / 100).toFixed(2).replace('.', '\\.');
+    bot.sendMessage(chatId, `✅ Payment of ₹${amountFormatted} from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)} confirmed.`, { parse_mode: 'MarkdownV2' });
+  });
+
   bot.onText(/\/help/, (msg) => {
     const helpText = `
 🤖 *PLANPAL Bot Commands*

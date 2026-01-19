@@ -124,7 +124,10 @@ export class DatabaseStorage implements IStorage {
 
   // Expense
   async createExpense(expense: InsertExpense): Promise<Expense> {
-    const [newExpense] = await db.insert(expenses).values(expense).returning();
+    const [newExpense] = await db.insert(expenses).values({
+      ...expense,
+      payerId: expense.payerId || 0, // Fallback for bot-created expenses where payerId isn't known yet
+    }).returning();
     return newExpense;
   }
 
