@@ -191,7 +191,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
       amount,
       description,
       payerUsername,
-      payerId: 0, // Backend logic in storage.ts will handle this or we'll link it later
+      payerId: 0, 
       splitAmong,
       status: mentions.length > 0 ? 'PENDING' : 'CONFIRMED',
     } as any);
