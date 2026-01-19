@@ -123,7 +123,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Expense
-  async createExpense(expense: InsertExpense): Promise<Expense> {
+  async createExpense(expense: any): Promise<Expense> {
     const [newExpense] = await db.insert(expenses).values({
       ...expense,
       payerId: expense.payerId || 0,
