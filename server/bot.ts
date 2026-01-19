@@ -144,7 +144,10 @@ Note: All amounts are in ₹ \\(INR\\)\\.
   bot.onText(/\/closeevent/, async (msg) => {
     const chatId = msg.chat.id;
     const event = await storage.getEventByTelegramGroupId(chatId.toString());
-    if (!event) return;
+    if (!event) {
+      bot.sendMessage(chatId, "This group is not linked to any event.");
+      return;
+    }
 
     if (event.status === 'CLOSED') {
       bot.sendMessage(chatId, "Event is already closed.");
@@ -155,12 +158,20 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     const pendingExpenses = expenses.filter(e => e.status === 'PENDING');
 
     if (pendingExpenses.length > 0) {
-      bot.sendMessage(chatId, `Cannot close event. There are ${pendingExpenses.length} pending expenses that need approval or rejection.`);
+      bot.sendMessage(chatId, `⚠️ Cannot close event. There are ${pendingExpenses.length} pending expenses that need approval or rejection.`);
+      return;
+    }
+
+    const payments = await storage.getPaymentsForEvent(event.id);
+    const pendingPayments = payments.filter(p => p.status === 'PENDING');
+
+    if (pendingPayments.length > 0) {
+      bot.sendMessage(chatId, `⚠️ Cannot close event. There are ${pendingPayments.length} pending payments that need confirmation.`);
       return;
     }
 
     await storage.updateEventStatus(event.id, 'CLOSED');
-    bot.sendMessage(chatId, `✅ Event *${escapeMarkdown(event.name)}* has been closed successfully.`, { parse_mode: 'MarkdownV2' });
+    bot.sendMessage(chatId, `🏁 *Event Closed\\!* 🏁\n\nEvent *${escapeMarkdown(event.name)}* has been successfully closed. No further expenses or payments can be recorded.`, { parse_mode: 'MarkdownV2' });
   });
 
   bot.onText(/\/addexpense (\d+)(?:\.\d{2})? (.+)/, async (msg, match) => {
