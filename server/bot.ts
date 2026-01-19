@@ -231,7 +231,10 @@ Note: All amounts are in ₹ \\(INR\\)\\.
         status: mentions.length > 0 ? 'PENDING' : 'CONFIRMED',
       } as any);
 
-      const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
+      // Using a safer manual escaping for the amount to ensure it is always escaped correctly
+      const amountRaw = (amount / 100).toFixed(2);
+      const amountFormatted = amountRaw.replace(/\./g, '\\.');
+
       if (mentions.length > 0) {
         bot.sendMessage(chatId, `Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" added. Waiting for approval from: ${mentions.map(m => '@' + escapeMarkdown(m || 'unknown')).join(', ')}`, { parse_mode: 'MarkdownV2' });
       } else {
@@ -266,11 +269,12 @@ Note: All amounts are in ₹ \\(INR\\)\\.
       toUserId: 0,
     } as any);
 
-    const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
+    const amountRaw = (amount / 100).toFixed(2);
+    const amountFormatted = amountRaw.replace(/\./g, '\\.');
     bot.sendMessage(chatId, `Payment of ₹${amountFormatted} recorded from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)}. @${escapeMarkdown(toUsername)}, please confirm with /confirmpayment @${escapeMarkdown(fromUsername)} ₹${amountFormatted}`, { parse_mode: 'MarkdownV2' });
   });
 
-  bot.onText(/\/confirmpayment @(\w+) (\d+)(?:\.\d{2})?/, async (msg, match) => {
+  bot.onText(/\/confirmpayment @(\w+) (\d+(?:\.\d{2})?)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const fromUsername = match?.[1];
     const amountStr = match?.[2];
@@ -292,7 +296,8 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     }
 
     await storage.updatePaymentStatus(payment.id, 'CONFIRMED');
-    const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
+    const amountRaw = (amount / 100).toFixed(2);
+    const amountFormatted = amountRaw.replace(/\./g, '\\.');
     bot.sendMessage(chatId, `✅ Payment of ₹${amountFormatted} from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)} confirmed.`, { parse_mode: 'MarkdownV2' });
   });
 
