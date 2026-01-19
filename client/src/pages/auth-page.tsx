@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Wallet, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Wallet as WalletIcon, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 const loginSchema = z.object({
@@ -66,7 +66,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=2000&auto=format&fit=crop')] opacity-10 bg-cover bg-center mix-blend-overlay" />
         <div className="relative z-10 max-w-lg space-y-8">
           <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center backdrop-blur-xl mb-8">
-            <Wallet className="w-8 h-8 text-white" />
+            <WalletIcon className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-5xl font-display font-bold leading-tight">
             Split expenses with friends, hassle-free.
@@ -98,7 +98,7 @@ export default function AuthPage() {
           <div className="text-center lg:text-left space-y-2">
              <div className="lg:hidden flex justify-center mb-6">
                 <div className="bg-primary/10 p-3 rounded-xl">
-                   <Wallet className="w-8 h-8 text-primary" />
+                   <WalletIcon className="w-8 h-8 text-primary" />
                 </div>
              </div>
              <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>

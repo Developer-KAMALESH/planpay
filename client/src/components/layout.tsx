@@ -6,7 +6,7 @@ import {
   X, 
   User as UserIcon, 
   LayoutDashboard,
-  Wallet
+  Wallet as WalletIcon
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2 group">
             <div className="bg-gradient-to-br from-primary to-accent text-white p-2 rounded-xl group-hover:scale-105 transition-transform duration-200">
-              <Wallet className="h-5 w-5" />
+              <WalletIcon className="h-5 w-5" />
             </div>
             <span className="font-display font-bold text-xl tracking-tight text-foreground">Split.it</span>
           </Link>

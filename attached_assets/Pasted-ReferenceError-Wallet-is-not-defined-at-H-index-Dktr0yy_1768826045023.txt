@@ -1,0 +1,83 @@
+ReferenceError: Wallet is not defined
+    at _H (index-Dktr0yy3.js:52:66071)
+    at vc (index-Dktr0yy3.js:6:17835)
+    at Av (index-Dktr0yy3.js:8:3158)
+    at Ew (index-Dktr0yy3.js:8:45708)
+    at Pw (index-Dktr0yy3.js:8:40505)
+    at iE (index-Dktr0yy3.js:8:40433)
+    at Kp (index-Dktr0yy3.js:8:40286)
+    at qv (index-Dktr0yy3.js:8:36547)
+    at Sw (index-Dktr0yy3.js:8:37359)
+    at E (index-Dktr0yy3.js:6:3267)
+Cv @ index-Dktr0yy3.js:8
+H5.h.callback @ index-Dktr0yy3.js:8
+vs @ index-Dktr0yy3.js:6
+yw @ index-Dktr0yy3.js:8
+vw @ index-Dktr0yy3.js:8
+tE @ index-Dktr0yy3.js:8
+oE @ index-Dktr0yy3.js:8
+_c @ index-Dktr0yy3.js:8
+Sw @ index-Dktr0yy3.js:8
+E @ index-Dktr0yy3.js:6
+(anonymous) @ index-Dktr0yy3.js:8
+setTimeout
+i @ index-Dktr0yy3.js:8
+a @ index-Dktr0yy3.js:8
+batch @ index-Dktr0yy3.js:8
+#i @ index-Dktr0yy3.js:8
+setData @ index-Dktr0yy3.js:8
+onSuccess @ index-Dktr0yy3.js:8
+m @ index-Dktr0yy3.js:8
+Promise.then
+P @ index-Dktr0yy3.js:8
+start @ index-Dktr0yy3.js:8
+fetch @ index-Dktr0yy3.js:8
+#f @ index-Dktr0yy3.js:8
+onSubscribe @ index-Dktr0yy3.js:8
+subscribe @ index-Dktr0yy3.js:8
+(anonymous) @ index-Dktr0yy3.js:8
+Mp @ index-Dktr0yy3.js:6
+Vp @ index-Dktr0yy3.js:8
+Ef @ index-Dktr0yy3.js:8
+oE @ index-Dktr0yy3.js:8
+_c @ index-Dktr0yy3.js:8
+Sw @ index-Dktr0yy3.js:8
+E @ index-Dktr0yy3.js:6
+(anonymous) @ index-Dktr0yy3.js:8
+setTimeout
+i @ index-Dktr0yy3.js:8
+a @ index-Dktr0yy3.js:8
+batch @ index-Dktr0yy3.js:8
+#i @ index-Dktr0yy3.js:8
+setData @ index-Dktr0yy3.js:8
+onSuccess @ index-Dktr0yy3.js:8
+m @ index-Dktr0yy3.js:8
+Promise.then
+P @ index-Dktr0yy3.js:8
+start @ index-Dktr0yy3.js:8
+fetch @ index-Dktr0yy3.js:8
+#f @ index-Dktr0yy3.js:8
+onSubscribe @ index-Dktr0yy3.js:8
+subscribe @ index-Dktr0yy3.js:8
+(anonymous) @ index-Dktr0yy3.js:8
+Mp @ index-Dktr0yy3.js:6
+Vp @ index-Dktr0yy3.js:8
+Ef @ index-Dktr0yy3.js:8
+Sw @ index-Dktr0yy3.js:8
+E @ index-Dktr0yy3.js:6
+oE @ index-Dktr0yy3.js:8
+_c @ index-Dktr0yy3.js:8
+bw @ index-Dktr0yy3.js:8
+G @ index-Dktr0yy3.js:1
+V @ index-Dktr0yy3.js:1
+index-Dktr0yy3.js:52 Uncaught ReferenceError: Wallet is not defined
+    at _H (index-Dktr0yy3.js:52:66071)
+    at vc (index-Dktr0yy3.js:6:17835)
+    at Av (index-Dktr0yy3.js:8:3158)
+    at Ew (index-Dktr0yy3.js:8:45708)
+    at Pw (index-Dktr0yy3.js:8:40505)
+    at iE (index-Dktr0yy3.js:8:40433)
+    at Kp (index-Dktr0yy3.js:8:40286)
+    at qv (index-Dktr0yy3.js:8:36547)
+    at Sw (index-Dktr0yy3.js:8:37359)
+    at E (index-Dktr0yy3.js:6:3267

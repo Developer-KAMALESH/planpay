@@ -43,7 +43,8 @@ import {
   Loader2, 
   ArrowRight,
   Hash,
-  Users
+  Users,
+  Wallet as WalletIcon
 } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -249,7 +250,7 @@ export default function Dashboard() {
             {events?.length === 0 ? (
               <div className="col-span-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed rounded-2xl bg-muted/30">
                 <div className="bg-primary/10 p-4 rounded-full mb-4">
-                  <Wallet className="h-8 w-8 text-primary" />
+                  <WalletIcon className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold">No events yet</h3>
                 <p className="text-muted-foreground mt-2 max-w-sm">
