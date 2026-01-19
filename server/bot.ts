@@ -174,36 +174,50 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     bot.sendMessage(chatId, `🏁 *Event Closed\\!* 🏁\n\nEvent *${escapeMarkdown(event.name)}* has been successfully closed. No further expenses or payments can be recorded.`, { parse_mode: 'MarkdownV2' });
   });
 
-  bot.onText(/\/addexpense (\d+(?:\.\d{2})?)(?:\s+(.+))?/, async (msg, match) => {
+  bot.onText(/\/(addexpense|ae)(?:\s+([\d.]+))?(?:\s+(.*))?/, async (msg, match) => {
     const chatId = msg.chat.id;
-    console.log(`[bot] Received /addexpense from ${msg.from?.username} in chat ${chatId}`);
-    const amountStr = match?.[1];
-    const description = match?.[2] || "Unspecified expense";
-    
+    const command = match?.[1];
+    const amountStr = match?.[2];
+    const restOfMessage = match?.[3] || "";
+
+    console.log(`[bot] Received /${command} from ${msg.from?.username} in chat ${chatId}. Amount: ${amountStr}, Rest: ${restOfMessage}`);
+
     if (!amountStr) {
-      console.log(`[bot] Missing amount in /addexpense`);
+      bot.sendMessage(chatId, "⚠️ Usage: /addexpense <amount> <description> [@mentions]\nExample: /addexpense 500 Dinner @friend");
       return;
     }
 
     const event = await storage.getEventByTelegramGroupId(chatId.toString());
     if (!event) {
-      console.log(`[bot] Chat ${chatId} not linked to any event`);
-      bot.sendMessage(chatId, "This group is not linked to any event. Use /startevent <code| to link.");
+      bot.sendMessage(chatId, "❌ This group is not linked to any event. Use /startevent <code| to link.");
       return;
     }
 
     const amount = Math.round(parseFloat(amountStr) * 100);
     const mentions = msg.entities?.filter(e => e.type === 'mention').map(e => msg.text?.substring(e.offset + 1, e.offset + e.length)) || [];
-    const payerUsername = msg.from?.username;
+    
+    // Description is everything in restOfMessage except the mentions
+    let description = restOfMessage;
+    if (msg.entities) {
+      // Sort entities in reverse order to remove mentions from description without breaking offsets
+      const sortedEntities = [...msg.entities].sort((a, b) => b.offset - a.offset);
+      for (const entity of sortedEntities) {
+        if (entity.type === 'mention') {
+          const start = entity.offset - (msg.text?.indexOf(restOfMessage) || 0);
+          if (start >= 0) {
+            description = description.substring(0, start) + description.substring(start + entity.length);
+          }
+        }
+      }
+    }
+    description = description.trim() || "Unspecified expense";
 
+    const payerUsername = msg.from?.username;
     if (!payerUsername) {
-      console.log(`[bot] Could not identify payer username`);
-      bot.sendMessage(chatId, "Could not identify you. Please ensure you have a Telegram username.");
+      bot.sendMessage(chatId, "❌ Could not identify you. Please ensure you have a Telegram username.");
       return;
     }
 
-    console.log(`[bot] Creating expense: ${amount} for "${description}" by @${payerUsername}, split among: ${mentions.join(', ')}`);
-    
     const splitAmong = (mentions.length > 0 ? mentions : [payerUsername]).filter((m): m is string => !!m);
     
     try {
@@ -225,7 +239,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
       }
     } catch (error) {
       console.error(`[bot] Error creating expense:`, error);
-      bot.sendMessage(chatId, "An error occurred while saving the expense.");
+      bot.sendMessage(chatId, "❌ An error occurred while saving the expense.");
     }
   });
 
