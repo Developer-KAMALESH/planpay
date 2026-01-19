@@ -174,14 +174,20 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     bot.sendMessage(chatId, `🏁 *Event Closed\\!* 🏁\n\nEvent *${escapeMarkdown(event.name)}* has been successfully closed. No further expenses or payments can be recorded.`, { parse_mode: 'MarkdownV2' });
   });
 
-  bot.onText(/\/addexpense (\d+)(?:\.\d{2})? (.+)/, async (msg, match) => {
+  bot.onText(/\/addexpense (\d+(?:\.\d{2})?)(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
+    console.log(`[bot] Received /addexpense from ${msg.from?.username} in chat ${chatId}`);
     const amountStr = match?.[1];
-    const description = match?.[2];
-    if (!amountStr || !description) return;
+    const description = match?.[2] || "Unspecified expense";
+    
+    if (!amountStr) {
+      console.log(`[bot] Missing amount in /addexpense`);
+      return;
+    }
 
     const event = await storage.getEventByTelegramGroupId(chatId.toString());
     if (!event) {
+      console.log(`[bot] Chat ${chatId} not linked to any event`);
       bot.sendMessage(chatId, "This group is not linked to any event. Use /startevent <code| to link.");
       return;
     }
@@ -191,27 +197,35 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     const payerUsername = msg.from?.username;
 
     if (!payerUsername) {
+      console.log(`[bot] Could not identify payer username`);
       bot.sendMessage(chatId, "Could not identify you. Please ensure you have a Telegram username.");
       return;
     }
 
+    console.log(`[bot] Creating expense: ${amount} for "${description}" by @${payerUsername}, split among: ${mentions.join(', ')}`);
+    
     const splitAmong = (mentions.length > 0 ? mentions : [payerUsername]).filter((m): m is string => !!m);
     
-    await storage.createExpense({
-      eventId: event.id,
-      amount,
-      description,
-      payerUsername,
-      payerId: 0, 
-      splitAmong,
-      status: mentions.length > 0 ? 'PENDING' : 'CONFIRMED',
-    } as any);
+    try {
+      await storage.createExpense({
+        eventId: event.id,
+        amount,
+        description,
+        payerUsername,
+        payerId: 0, 
+        splitAmong,
+        status: mentions.length > 0 ? 'PENDING' : 'CONFIRMED',
+      } as any);
 
-    const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
-    if (mentions.length > 0) {
-      bot.sendMessage(chatId, `Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" added. Waiting for approval from: ${mentions.map(m => '@' + escapeMarkdown(m || 'unknown')).join(', ')}`, { parse_mode: 'MarkdownV2' });
-    } else {
-      bot.sendMessage(chatId, `✅ Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" confirmed.`, { parse_mode: 'MarkdownV2' });
+      const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
+      if (mentions.length > 0) {
+        bot.sendMessage(chatId, `Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" added. Waiting for approval from: ${mentions.map(m => '@' + escapeMarkdown(m || 'unknown')).join(', ')}`, { parse_mode: 'MarkdownV2' });
+      } else {
+        bot.sendMessage(chatId, `✅ Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" confirmed.`, { parse_mode: 'MarkdownV2' });
+      }
+    } catch (error) {
+      console.error(`[bot] Error creating expense:`, error);
+      bot.sendMessage(chatId, "An error occurred while saving the expense.");
     }
   });
 
