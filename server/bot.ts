@@ -8,7 +8,7 @@ export function setupTelegramBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
-  const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&');
+  const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&').replace(/\./g, '\\.');
 
   bot.onText(/\/start/, (msg) => {
     const helpText = `
@@ -61,7 +61,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     const totalCents = confirmedExpenses.reduce((sum, e) => sum + e.amount, 0);
 
     let text = `💰 *Event Summary: ${escapeMarkdown(event.name)}*\n`;
-    text += `Total Confirmed Expenses: ₹${(totalCents / 100).toFixed(2).replace('.', '\\.')}\n`;
+    text += `Total Confirmed Expenses: ₹${escapeMarkdown((totalCents / 100).toFixed(2))}\n`;
     
     bot.sendMessage(chatId, text, { parse_mode: 'MarkdownV2' });
   });
@@ -82,14 +82,14 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     report += `💰 *Confirmed Expenses:*\n`;
     if (confirmedExpenses.length === 0) report += "_None_\n";
     confirmedExpenses.forEach(e => {
-      report += `• ${escapeMarkdown(e.description)}: ₹${(e.amount / 100).toFixed(2).replace('.', '\\.')} \\(by @${escapeMarkdown(e.payerUsername || 'unknown')}\\)\n`;
+      report += `• ${escapeMarkdown(e.description)}: ₹${escapeMarkdown((e.amount / 100).toFixed(2))} \\(by @${escapeMarkdown(e.payerUsername || 'unknown')}\\)\n`;
     });
 
     report += `\n🤝 *Settlements:*\n`;
     if (confirmedPayments.length === 0) report += "_None_\n";
     confirmedPayments.forEach(p => {
       const time = format(new Date(p.createdAt || new Date()), "HH:mm");
-      report += `• @${escapeMarkdown(p.fromUsername || 'unknown')} → @${escapeMarkdown(p.toUsername || 'unknown')} ₹${(p.amount / 100).toFixed(2).replace('.', '\\.')} \\(@ ${time}\\)\n`;
+      report += `• @${escapeMarkdown(p.fromUsername || 'unknown')} → @${escapeMarkdown(p.toUsername || 'unknown')} ₹${escapeMarkdown((p.amount / 100).toFixed(2))} \\(@ ${time}\\)\n`;
     });
 
     // Net balances for "Yet to be paid"
@@ -129,7 +129,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     const tempCreditors = JSON.parse(JSON.stringify(creditors));
     while (dIdx < tempDebtors.length && cIdx < tempCreditors.length) {
       const settlement = Math.min(tempDebtors[dIdx].balance, tempCreditors[cIdx].balance);
-      report += `• @${escapeMarkdown(tempDebtors[dIdx].user)} owes @${escapeMarkdown(tempCreditors[cIdx].user)} ₹${(settlement / 100).toFixed(2).replace('.', '\\.')}\n`;
+      report += `• @${escapeMarkdown(tempDebtors[dIdx].user)} owes @${escapeMarkdown(tempCreditors[cIdx].user)} ₹${escapeMarkdown((settlement / 100).toFixed(2))}\n`;
       tempDebtors[dIdx].balance -= settlement;
       tempCreditors[cIdx].balance -= settlement;
       if (tempDebtors[dIdx].balance < 1) dIdx++;
@@ -207,7 +207,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
       status: mentions.length > 0 ? 'PENDING' : 'CONFIRMED',
     } as any);
 
-    const amountFormatted = (amount / 100).toFixed(2).replace('.', '\\.');
+    const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
     if (mentions.length > 0) {
       bot.sendMessage(chatId, `Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" added. Waiting for approval from: ${mentions.map(m => '@' + escapeMarkdown(m || 'unknown')).join(', ')}`, { parse_mode: 'MarkdownV2' });
     } else {
@@ -238,7 +238,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
       toUserId: 0,
     } as any);
 
-    const amountFormatted = (amount / 100).toFixed(2).replace('.', '\\.');
+    const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
     bot.sendMessage(chatId, `Payment of ₹${amountFormatted} recorded from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)}. @${escapeMarkdown(toUsername)}, please confirm with /confirmpayment @${escapeMarkdown(fromUsername)} ₹${amountFormatted}`, { parse_mode: 'MarkdownV2' });
   });
 
@@ -264,7 +264,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     }
 
     await storage.updatePaymentStatus(payment.id, 'CONFIRMED');
-    const amountFormatted = (amount / 100).toFixed(2).replace('.', '\\.');
+    const amountFormatted = escapeMarkdown((amount / 100).toFixed(2));
     bot.sendMessage(chatId, `✅ Payment of ₹${amountFormatted} from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)} confirmed.`, { parse_mode: 'MarkdownV2' });
   });
 

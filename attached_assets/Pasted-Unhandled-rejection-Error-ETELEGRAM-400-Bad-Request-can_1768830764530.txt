@@ -1,0 +1,77 @@
+Unhandled rejection Error: ETELEGRAM: 400 Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\'
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Async._drainQueues (/home/runner/workspace/node_modules/bluebird/js/release/async.js:102:5)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at tryCatcher (/home/runner/workspace/node_modules/bluebird/js/release/util.js:16:23)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at _drainQueue (/home/runner/workspace/node_modules/bluebird/js/release/async.js:86:9)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Promise._settlePromiseFromHandler (/home/runner/workspace/node_modules/bluebird/js/release/promise.js:547:31)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at /home/runner/workspace/node_modules/node-telegram-bot-api/src/telegram.js:330:15
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Promise._settlePromise (/home/runner/workspace/node_modules/bluebird/js/release/promise.js:604:18)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Async.drainQueues [as _onImmediate] (/home/runner/workspace/node_modules/bluebird/js/release/async.js:15:14)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at process.processImmediate (node:internal/timers:483:21)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at _drainQueueStep (/home/runner/workspace/node_modules/bluebird/js/release/async.js:93:12)
+2026-01-19 19:21:54.91
+0f40c445
+User
+Unhandled rejection Error: ETELEGRAM: 400 Bad Request: can't parse entities: Character '.' is reserved and must be escaped with the preceding '\'
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Async._drainQueues (/home/runner/workspace/node_modules/bluebird/js/release/async.js:102:5)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at tryCatcher (/home/runner/workspace/node_modules/bluebird/js/release/util.js:16:23)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at _drainQueue (/home/runner/workspace/node_modules/bluebird/js/release/async.js:86:9)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Promise._settlePromiseFromHandler (/home/runner/workspace/node_modules/bluebird/js/release/promise.js:547:31)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at /home/runner/workspace/node_modules/node-telegram-bot-api/src/telegram.js:330:15
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Promise._settlePromise (/home/runner/workspace/node_modules/bluebird/js/release/promise.js:604:18)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at Async.drainQueues [as _onImmediate] (/home/runner/workspace/node_modules/bluebird/js/release/async.js:15:14)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at process.processImmediate (node:internal/timers:483:21)
+2026-01-19 19:21:54.91
+0f40c445
+User
+at _drainQueueStep (/home/runner/workspace/node_modules/bluebird/js/release/async.js:93:12)
