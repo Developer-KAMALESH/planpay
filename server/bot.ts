@@ -8,7 +8,9 @@ export function setupTelegramBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
-  const escapeMarkdown = (text: string) => text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&').replace(/\./g, '\\.');
+  const escapeMarkdown = (text: string) => {
+    return text.replace(/[_*[\]()~`>#+-=|{}.!]/g, '\\$&').replace(/\./g, '\\.');
+  };
 
   bot.onText(/\/start/, (msg) => {
     const helpText = `
@@ -231,15 +233,12 @@ Note: All amounts are in ₹ \\(INR\\)\\.
         status: mentions.length > 0 ? 'PENDING' : 'CONFIRMED',
       } as any);
 
-      // Using a safer manual escaping for the amount to ensure it is always escaped correctly
-      const amountRaw = (amount / 100).toFixed(2);
-      const amountFormatted = amountRaw.replace(/\./g, '\\.');
-
-      if (mentions.length > 0) {
-        bot.sendMessage(chatId, `Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" added. Waiting for approval from: ${mentions.map(m => '@' + escapeMarkdown(m || 'unknown')).join(', ')}`, { parse_mode: 'MarkdownV2' });
-      } else {
-        bot.sendMessage(chatId, `✅ Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" confirmed.`, { parse_mode: 'MarkdownV2' });
-      }
+    const amountFormatted = (amount / 100).toFixed(2).replace(/\./g, '\\.');
+    if (mentions.length > 0) {
+      bot.sendMessage(chatId, `Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" added. Waiting for approval from: ${mentions.map(m => '@' + escapeMarkdown(m || 'unknown')).join(', ')}`, { parse_mode: 'MarkdownV2' });
+    } else {
+      bot.sendMessage(chatId, `✅ Expense of ₹${amountFormatted} for "${escapeMarkdown(description)}" confirmed.`, { parse_mode: 'MarkdownV2' });
+    }
     } catch (error) {
       console.error(`[bot] Error creating expense:`, error);
       bot.sendMessage(chatId, "❌ An error occurred while saving the expense.");
@@ -269,8 +268,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
       toUserId: 0,
     } as any);
 
-    const amountRaw = (amount / 100).toFixed(2);
-    const amountFormatted = amountRaw.replace(/\./g, '\\.');
+    const amountFormatted = (amount / 100).toFixed(2).replace(/\./g, '\\.');
     bot.sendMessage(chatId, `Payment of ₹${amountFormatted} recorded from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)}. @${escapeMarkdown(toUsername)}, please confirm with /confirmpayment @${escapeMarkdown(fromUsername)} ₹${amountFormatted}`, { parse_mode: 'MarkdownV2' });
   });
 
@@ -296,8 +294,7 @@ Note: All amounts are in ₹ \\(INR\\)\\.
     }
 
     await storage.updatePaymentStatus(payment.id, 'CONFIRMED');
-    const amountRaw = (amount / 100).toFixed(2);
-    const amountFormatted = amountRaw.replace(/\./g, '\\.');
+    const amountFormatted = (amount / 100).toFixed(2).replace(/\./g, '\\.');
     bot.sendMessage(chatId, `✅ Payment of ₹${amountFormatted} from @${escapeMarkdown(fromUsername)} to @${escapeMarkdown(toUsername)} confirmed.`, { parse_mode: 'MarkdownV2' });
   });
 
