@@ -12,7 +12,24 @@ export function setupTelegramBot() {
   }
 
   log('Setting up Telegram bot...', 'bot');
-  const bot = new TelegramBot(token, { polling: true });
+  const bot = new TelegramBot(token, { 
+    polling: {
+      interval: 1000,
+      autoStart: true,
+      params: {
+        timeout: 10
+      }
+    }
+  });
+
+  // Handle polling errors
+  bot.on('polling_error', (error) => {
+    log(`Polling error: ${error.message}`, 'bot-error');
+    if (error.message.includes('409 Conflict')) {
+      log('Bot conflict detected - another instance may be running', 'bot-error');
+      // Don't restart automatically to avoid infinite loops
+    }
+  });
 
   // Debug: Log all messages
   bot.on('message', (msg) => {
