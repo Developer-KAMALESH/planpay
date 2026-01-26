@@ -19,15 +19,6 @@ export async function registerRoutes(
 
   // API Routes
   
-  // Root test endpoint
-  app.get('/', (req, res) => {
-    res.json({ 
-      message: 'PlanPal API is running!', 
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV 
-    });
-  });
-  
   // Health check endpoint
   app.get('/health', (req, res) => {
     const health = monitoring.getHealthStatus();
