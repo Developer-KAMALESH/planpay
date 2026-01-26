@@ -12,22 +12,45 @@ export function setupTelegramBot() {
   }
 
   log('Setting up Telegram bot...', 'bot');
-  const bot = new TelegramBot(token, { 
-    polling: {
-      interval: 1000,
-      autoStart: true,
-      params: {
-        timeout: 10
+  
+  // First, stop any existing polling
+  const bot = new TelegramBot(token, { polling: false });
+  
+  // Clear any existing webhooks
+  bot.deleteWebHook().then(() => {
+    log('Cleared existing webhooks', 'bot');
+    
+    // Now start polling with conflict resolution
+    bot.startPolling({
+      restart: true,
+      polling: {
+        interval: 2000,
+        autoStart: false,
+        params: {
+          timeout: 10,
+          allowed_updates: ['message', 'callback_query']
+        }
       }
-    }
+    });
+    
+    log('Bot polling started', 'bot');
+  }).catch((error) => {
+    log(`Error clearing webhooks: ${error.message}`, 'bot-error');
+    // Try to start polling anyway
+    bot.startPolling();
   });
 
-  // Handle polling errors
+  // Handle polling errors with automatic recovery
   bot.on('polling_error', (error) => {
     log(`Polling error: ${error.message}`, 'bot-error');
     if (error.message.includes('409 Conflict')) {
-      log('Bot conflict detected - another instance may be running', 'bot-error');
-      // Don't restart automatically to avoid infinite loops
+      log('Bot conflict detected - stopping and restarting polling', 'bot-error');
+      bot.stopPolling().then(() => {
+        setTimeout(() => {
+          log('Restarting bot polling after conflict', 'bot');
+          bot.startPolling();
+        }, 5000); // Wait 5 seconds before restarting
+      });
     }
   });
 
