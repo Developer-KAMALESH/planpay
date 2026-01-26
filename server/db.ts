@@ -11,5 +11,12 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  // Force IPv4 to avoid IPv6 connection issues
+  host: process.env.DATABASE_URL?.includes('supabase.co') 
+    ? process.env.DATABASE_URL.match(/\/\/[^:]+:([^@]+)@([^:]+)/)?.[2] 
+    : undefined,
+  family: 4 // Force IPv4
+});
 export const db = drizzle(pool, { schema });
