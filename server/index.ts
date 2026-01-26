@@ -60,7 +60,7 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+async function setupApp() {
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -81,12 +81,27 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 3000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "3000", 10);
-  httpServer.listen(port, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+  return app;
+}
+
+// For Vercel serverless functions
+export default async function handler(req: any, res: any) {
+  const app = await setupApp();
+  return app(req, res);
+}
+
+// For local development
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  (async () => {
+    await setupApp();
+    
+    // ALWAYS serve the app on the port specified in the environment variable PORT
+    // Other ports are firewalled. Default to 3000 if not specified.
+    // this serves both the API and the client.
+    // It is the only port that is not firewalled.
+    const port = parseInt(process.env.PORT || "3000", 10);
+    httpServer.listen(port, () => {
+      log(`serving on port ${port}`);
+    });
+  })();
+}
