@@ -31,11 +31,16 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  // Simplified session setup for debugging
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "r3pl1t",
+    secret: process.env.SESSION_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
-    store: storage.sessionStore,
+    cookie: {
+      secure: false, // Allow HTTP for testing
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+    // Temporarily remove custom store to use default memory store
   };
 
   if (app.get("env") === "production") {
