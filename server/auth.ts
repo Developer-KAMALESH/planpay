@@ -21,6 +21,8 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
+export { hashPassword };
+
 async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
@@ -57,8 +59,18 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      const user = await storage.getUser(id);
+      if (!user) {
+        // User doesn't exist (probably deleted after DB reset)
+        return done(null, false);
+      }
+      done(null, user);
+    } catch (error) {
+      // Handle any database errors gracefully
+      console.log('User deserialization failed:', error);
+      done(null, false);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {

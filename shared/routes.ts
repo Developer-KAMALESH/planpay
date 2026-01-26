@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { insertUserSchema, insertEventSchema, insertExpenseSchema, insertPaymentSchema, users, events, expenses, payments } from './schema';
+import type { InsertUser, InsertEvent, InsertExpense, InsertPayment } from './schema';
 
 export { insertUserSchema, insertEventSchema, insertExpenseSchema, insertPaymentSchema, users, events, expenses, payments };
+export type { InsertUser, InsertEvent, InsertExpense, InsertPayment };
 
 // === ERROR SCHEMAS ===
 export const errorSchemas = {

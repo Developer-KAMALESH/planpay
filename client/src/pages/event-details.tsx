@@ -78,7 +78,9 @@ export default function EventDetails() {
         autoTable(doc, {
             startY: 55,
             head: [['Description', 'Paid By', 'Date', 'Amount']],
-            body: event.expenses.map(e => [
+            body: event.expenses
+                .filter(e => e.status === 'CONFIRMED')
+                .map(e => [
                 e.description,
                 e.payerUsername || `User #${e.payerId}`,
                 format(new Date(e.createdAt || new Date()), "MMM d"),
@@ -157,9 +159,7 @@ export default function EventDetails() {
                     description: data.description,
                     amount: Math.round(data.amount * 100), // Convert to cents
                     payerId: user.id,
-                    eventId,
                     splitAmong: [], // Empty means all participants in event (backend logic)
-                    votes: {},
                 },
             },
             {
@@ -171,10 +171,9 @@ export default function EventDetails() {
         );
     };
 
-    const totalExpenses = event.expenses.reduce(
-        (sum, exp) => sum + exp.amount,
-        0,
-    );
+    const totalExpenses = event.expenses
+        .filter(exp => exp.status === 'CONFIRMED')
+        .reduce((sum, exp) => sum + exp.amount, 0);
 
     return (
         <Layout>
@@ -337,7 +336,7 @@ export default function EventDetails() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {event.expenses.length}
+                                {event.expenses.filter(e => e.status === 'CONFIRMED').length}
                             </div>
                         </CardContent>
                     </Card>
@@ -350,7 +349,9 @@ export default function EventDetails() {
                         <CardContent>
                             {/* Placeholder for participant count - derived from unique payers/splitters */}
                             <div className="text-2xl font-bold">
-                                {new Set(event.expenses.map((e) => e.payerId))
+                                {new Set(event.expenses
+                                    .filter(e => e.status === 'CONFIRMED')
+                                    .map((e) => e.payerId))
                                     .size || 1}
                             </div>
                         </CardContent>
@@ -392,6 +393,7 @@ export default function EventDetails() {
                                                 </TableHead>
                                                 <TableHead>Paid By</TableHead>
                                                 <TableHead>Date</TableHead>
+                                                <TableHead>Status</TableHead>
                                                 <TableHead className="text-right">
                                                     Amount
                                                 </TableHead>
@@ -414,6 +416,19 @@ export default function EventDetails() {
                                                             ),
                                                             "MMM d",
                                                         )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                            expense.status === 'CONFIRMED' 
+                                                                ? 'bg-green-100 text-green-800' 
+                                                                : expense.status === 'PENDING'
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : 'bg-red-100 text-red-800'
+                                                        }`}>
+                                                            {expense.status === 'CONFIRMED' ? '✅ Confirmed' : 
+                                                             expense.status === 'PENDING' ? '⏳ Pending' : 
+                                                             '❌ Rejected'}
+                                                        </span>
                                                     </TableCell>
                                                     <TableCell className="text-right font-medium">
                                                         ₹

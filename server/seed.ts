@@ -36,8 +36,6 @@ async function seed() {
     location: "Goa, India",
     description: "Beach, Sun, and Fun!",
     creatorId: user.id,
-    status: "ACTIVE",
-    telegramGroupId: "-100123456789",
   });
 
   await storage.createExpense({

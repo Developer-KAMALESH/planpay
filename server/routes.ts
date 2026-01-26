@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { setupTelegramBot } from "./bot";
+import { monitoring } from "./monitoring.js";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
@@ -18,6 +19,27 @@ export async function registerRoutes(
 
   // API Routes
   
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    const health = monitoring.getHealthStatus();
+    res.status(health.status === 'healthy' ? 200 : health.status === 'warning' ? 200 : 503).json({
+      status: health.status,
+      details: health.details,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
+  // Metrics endpoint (for debugging)
+  app.get('/metrics', (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    res.json({
+      summary: monitoring.getMetricsSummary(),
+      health: monitoring.getHealthStatus()
+    });
+  });
   // Events
   app.get(api.events.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
