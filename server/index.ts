@@ -85,9 +85,22 @@ async function setupApp() {
 }
 
 // For Vercel serverless functions
-export default async function handler(req: any, res: any) {
-  const app = await setupApp();
-  return app(req, res);
+let appInstance: any = null;
+
+async function handler(req: any, res: any) {
+  if (!appInstance) {
+    appInstance = await setupApp();
+  }
+  return appInstance(req, res);
+}
+
+// Export for both ES modules and CommonJS
+export default handler;
+
+// For CommonJS compatibility (needed for Vercel)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = handler;
+  module.exports.default = handler;
 }
 
 // For local development
