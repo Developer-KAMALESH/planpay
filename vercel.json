@@ -5,18 +5,18 @@
       "src": "package.json",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["dist/**"]
+        "includeFiles": ["dist/**", "client/dist/**"]
       }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://planpal-backend.onrender.com/api/$1"
+      "dest": "/dist/index.cjs"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/index.html"
+      "dest": "/client/dist/index.html"
     }
   ],
   "env": {
@@ -24,7 +24,8 @@
   },
   "functions": {
     "dist/index.cjs": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs18.x",
+      "maxDuration": 30
     }
   }
 }
