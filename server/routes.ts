@@ -20,14 +20,24 @@ export async function registerRoutes(
   // API Routes
   
   // Health check endpoint
-  app.get('/health', (req, res) => {
-    const health = monitoring.getHealthStatus();
-    res.status(health.status === 'healthy' ? 200 : health.status === 'warning' ? 200 : 503).json({
-      status: health.status,
-      details: health.details,
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    });
+  app.get('/health', async (req, res) => {
+    try {
+      // Test database connection
+      const result = await db.select().from(users).limit(1);
+      res.status(200).json({
+        status: 'healthy',
+        database: 'connected',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'unhealthy',
+        database: 'disconnected',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // Metrics endpoint (for debugging)

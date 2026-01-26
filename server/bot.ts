@@ -5,6 +5,12 @@ import { OCRService, ManualEntryHandler } from './ocr.js';
 import { log } from './index.js';
 
 export function setupTelegramBot() {
+  // Allow disabling bot for local development
+  if (process.env.DISABLE_BOT === 'true') {
+    log('Telegram bot disabled via DISABLE_BOT environment variable', 'bot');
+    return;
+  }
+
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     log('No Telegram bot token found', 'bot');

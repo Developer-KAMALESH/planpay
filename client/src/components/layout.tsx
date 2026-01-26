@@ -36,7 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="bg-gradient-to-br from-primary to-accent text-white p-2 rounded-xl group-hover:scale-105 transition-transform duration-200">
               <WalletIcon className="h-5 w-5" />
             </div>
-            <span className="font-display font-bold text-xl tracking-tight text-foreground">Split.it</span>
+            <span className="font-display font-bold text-xl tracking-tight text-foreground">PlanPAY</span>
           </Link>
 
           {/* Desktop Navigation */}
