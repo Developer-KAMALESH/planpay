@@ -1,9 +1,7 @@
-// Simple test endpoint
-export default function handler(req, res) {
-  res.status(200).json({
-    message: 'Hello from Vercel API!',
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    url: req.url
-  });
-}
+// PlanPal Express App for Vercel
+const path = require('path');
+
+// Import the built server
+const serverHandler = require(path.join(__dirname, '..', 'dist', 'index.cjs'));
+
+module.exports = serverHandler.default || serverHandler;
