@@ -8,10 +8,10 @@ import {
   type Payment, type InsertPayment
 } from "@shared/schema";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
+import MemoryStore from "memorystore";
 
-const PostgresSessionStore = connectPg(session);
+// Use memory store for sessions (simpler for deployment)
+const MemorySessionStore = MemoryStore(session);
 
 export interface IStorage {
   // User & Auth
@@ -52,9 +52,8 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
+    this.sessionStore = new MemorySessionStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
     });
   }
 
